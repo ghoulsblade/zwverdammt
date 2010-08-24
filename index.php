@@ -58,8 +58,17 @@ Die hier zu sehenden Bilder und Daten sind aus dem Browsergame "Die Verdammten" 
 // header
 echo href("http://verdammt.zwischenwelt.org/");
 if ($gSeelenID) { ?><form action="" method="POST"><input type="submit" name="LogOut" value="LogOut"></form><?php }
+if ($gSeelenID) $gSeelenID = preg_replace('/[^a-zA-Z0-9]/','',$gSeelenID);
+
 echo "Author: EMail:".href("mailto:ghoulsblade@schattenkind.net","ghoulsblade@schattenkind.net")." ICQ:107677833 (wer SourceCode mag einfach melden)<br>\n";
-echo "<br>\n";
+echo "Links:".
+	href("http://dvmap.nospace.de/index.php","VerdammteKarte")." ".
+	href("http://emptycookie.de/index.php?id=".($gSeelenID?$gSeelenID:""),"Verdammte‹bersicht")." ".
+	href("http://nobbz.de/wiki/","NobbzWiki")." ".
+	href("http://forum.der-holle.de/","HolleForum")." ".
+	href("http://www.patamap.com/index.php?page=patastats","PataMap")." ".
+	"<br>\n";
+
 
 // seelenid
 if (!$gSeelenID) {
@@ -72,7 +81,6 @@ if (!$gSeelenID) {
 	PrintFooter(); exit(0);
 }
 
-$gSeelenID = preg_replace('/[^a-zA-Z0-9]/','',$gSeelenID);
 
 $xmlurl = "http://www.dieverdammten.de/xml/?k=".urlencode($gSeelenID);
 echo "xmlurl=".href(htmlspecialchars($xmlurl))."<br>\n";
@@ -96,7 +104,7 @@ $def = (int)($city->defense[0]["total"]);
 
 $zombie_min = (int)($xml->data[0]->estimations[0]->e[0]["min"]);
 $zombie_max = (int)($xml->data[0]->estimations[0]->e[0]["max"]);
-echo "defense=$def, zombie_min=$zombie_min, zombie_max=$zombie_max, durchkommen=".max(0,$zombie_min-$def)."-".max(0,$zombie_max-$def)."<br>\n";
+echo "Zombies=$zombie_min-$zombie_max, def=$def, durchkommen=".max(0,$zombie_min-$def)."-".max(0,$zombie_max-$def)."<br>\n";
 //~ var_dump($o);
 //~ echo $xml->data[0]->city[0]->city;
 //~ $hordes
@@ -105,10 +113,99 @@ $iconurl = $xml->headers[0]["iconurl"]."item_";
 //~ echo "iconurl=$iconurl<br>\n";
 
 echo "Bank:<br>";
+$cats = array();
 foreach ($xml->data[0]->bank[0]->item as $item) { 
 	$c = $item["count"];
-	echo (($c>1)?($c."x"):"").img($iconurl.$item["img"].".gif",$item["name"])."&nbsp;\n"; 
+	$cat = (string)$item["cat"];
+	$html = (($c>1)?($c."x"):"").img($iconurl.$item["img"].".gif",$item["name"]);
+	if (!isset($cats[$cat])) $cats[$cat] = array();
+	$cats[$cat][] = $html;
 }
+
+echo "<table border=1 cellspacing=0 cellpadding=0>\n";
+foreach ($cats as $k => $arr) echo "<tr><th>".$k."</th><td align=right>".implode("</td><td align=right>",$arr)."</td></tr>\n";
+echo "</table>\n";
+
+$map = $xml->data[0]->map[0];
+$w = $map["wid"];
+$h = $map["hei"];
+echo "Map:w=$w,h=$h<br>\n";
+$gMap = array();
+function MapSet ($x,$y,$data) { 
+	global $gMap;
+	$gMap["$x,$y"] = $data; 
+	//~ echo "MapSet($x,$y,nvt=".$data["nvt"].",tag=".$data["tag"].")<br>\n";
+}
+function Map ($x,$y) { global $gMap; return isset($gMap["$x,$y"])?$gMap["$x,$y"]:false; }
+foreach ($map->zone as $zone) MapSet((int)$zone["x"],(int)$zone["y"],array("nvt"=>$zone["nvt"],"tag"=>$zone["tag"],"danger"=>$zone["danger"]));
+
+/*
+<zone x="0" y="3" nvt="1" tag="5">
+<building name="Gepl¸nderte Mall" type="5" dig="0">
+<![CDATA[Dieser riesige Haufen aus Schutt und Metall war fr¸her mal ein hell erleuchtetes Einkaufszentrum, das vor Menschen nur so wimmelte. Das Einzige, was hier noch herumwimmelt, sind W¸rmer und anderes Gekreuch und Gefleuch... Du bist jedoch zuversichtlich, hier allerhand n¸tzliche Gegenst‰nde zu finden.]]>
+</building>
+</zone>
+
+<zone x="3" y="7" nvt="0" tag="5" danger="2">
+<building name="Verfallene Villa" type="4" dig="0">
+<![CDATA[Dieses Haus war einmal vor langer Zeit bewohnt. Vielleicht wohnte hier eine gl¸ckliche Familie, deren Mitglieder hier schˆne Momente verbracht haben? Davon ist aber nichts mehr zu sp¸ren, im Gegenteil: Staub, Zerstˆrung und absolute Trostlosigkeit, wohin du auch blickst. Ab und zu kommt auch mal ein z‰hnefletschender Zombie vorbeigestapft.]]>
+</building>
+</zone>
+*/
+
+
+$cityx = $xml->data[0]->city["x"];
+$cityy = $xml->data[0]->city["y"];
+
+echo "nvt:<table border=1 cellspacing=0 cellpadding=0>\n";
+for ($y=0;$y<$h;++$y) {
+	echo "<tr>";
+	for ($x=0;$x<$w;++$x) {
+		$data = Map($x,$y);
+		$style = ($x == $cityx && $y == $cityy) ? "bgcolor=green" : "";
+		echo "<td $style width=16 height=16>".($data?$data["nvt"]:"")."</td>";
+		//~ echo "<td width=16 height=16>".($data?("nvt=".$data["nvt"].",tag=".$data["tag"]):"")."</td>";
+		//~ echo "<td width=16 height=16>".($data?"x":"")."</td>";
+	}
+	echo "</tr>\n";
+}
+echo "</table>\n";
+
+function TagIconHTML ($tagid) {
+	return img("http://data.dieverdammten.de/gfx/icons/tag_".((int)$tagid).".gif");
+}
+
+echo "tag:<table border=1 cellspacing=0 cellpadding=0>\n";
+for ($y=0;$y<$h;++$y) {
+	echo "<tr>";
+	for ($x=0;$x<$w;++$x) {
+		$data = Map($x,$y);
+		$style = ($x == $cityx && $y == $cityy) ? "bgcolor=green" : "";
+		echo "<td $style width=16 height=16>".($data?TagIconHTML($data["tag"]):"")."</td>";
+		//~ echo "<td width=16 height=16>".($data?("nvt=".$data["nvt"].",tag=".$data["tag"]):"")."</td>";
+		//~ echo "<td width=16 height=16>".($data?"x":"")."</td>";
+	}
+	echo "</tr>\n";
+}
+echo "</table>\n";
+
+echo "danger:<table border=1 cellspacing=0 cellpadding=0>\n";
+for ($y=0;$y<$h;++$y) {
+	echo "<tr>";
+	for ($x=0;$x<$w;++$x) {
+		$data = Map($x,$y);
+		$style = ($x == $cityx && $y == $cityy) ? "bgcolor=green" : "";
+		echo "<td $style width=16 height=16>".($data?$data["danger"]:"")."</td>";
+		//~ echo "<td width=16 height=16>".($data?("nvt=".$data["nvt"].",tag=".$data["tag"]):"")."</td>";
+		//~ echo "<td width=16 height=16>".($data?"x":"")."</td>";
+	}
+	echo "</tr>\n";
+}
+echo "</table>\n";
+
+/*
+<map hei="12" wid="12"><zone x="3" y="1" nvt="1" tag="5"/><zone x="4" y="1" nvt="1"/><zone x="5" y="1" nvt="1"/><zone x="6" y="1" nvt="1"/><zone x="7" y="1" nvt="1"/><zone x="2" y="2" nvt="1"/><zone x="3" y="2" nvt="1" tag="5"/>
+*/
 
 //~ echo "xml=".htmlspecialchars($xml);
 
