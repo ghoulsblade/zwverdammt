@@ -3,7 +3,7 @@ require_once("roblib.php");
 function href ($url,$title=false) { return "<a href='$url'>".($title?$title:$url)."</a>"; }
 
 //~ function MyEscXML ($txt) { return htmlentities($txt); } // ö->uuml;
-function MyEscXML ($txt) { return strtr($txt,array("roßer"=>"rosser","ö"=>"&ouml;","ü"=>"&uuml;","ä"=>"&auml;","Ö"=>"&Ouml;","Ü"=>"&Uuml;","Ä"=>"&Auml;")); } // htmlentities
+function MyEscXML ($txt) { return strtr($txt,array("roßer"=>"rosser","ö"=>"&ouml;","ü"=>"&uuml;","ä"=>"ae","Ö"=>"&Ouml;","Ü"=>"&Uuml;","Ä"=>"&Auml;")); } // htmlentities
 function MyEsc ($txt) { return $txt; } // htmlentities
 //~ function MyEsc ($txt) { return strtr($txt,array("Ã?"=>"ß","Ã¼"=>"ü","Ã¶"=>"ö")); } // htmlentities
 function img ($url,$title=false) { $title = $title?(MyEsc($title)):$title; return "<img src='$url' ".($title?("alt='$title' title='$title'"):"")."/>"; }
@@ -137,7 +137,7 @@ function MapSet ($x,$y,$data) {
 	//~ echo "MapSet($x,$y,nvt=".$data["nvt"].",tag=".$data["tag"].")<br>\n";
 }
 function Map ($x,$y) { global $gMap; return isset($gMap["$x,$y"])?$gMap["$x,$y"]:false; }
-foreach ($map->zone as $zone) MapSet((int)$zone["x"],(int)$zone["y"],array("nvt"=>$zone["nvt"],"tag"=>$zone["tag"],"danger"=>$zone["danger"]));
+foreach ($map->zone as $zone) MapSet((int)$zone["x"],(int)$zone["y"],$zone);
 
 /*
 <zone x="0" y="3" nvt="1" tag="5">
@@ -157,31 +157,35 @@ foreach ($map->zone as $zone) MapSet((int)$zone["x"],(int)$zone["y"],array("nvt"
 $cityx = $xml->data[0]->city["x"];
 $cityy = $xml->data[0]->city["y"];
 
-echo "nvt:<table border=1 cellspacing=0 cellpadding=0>\n";
-for ($y=0;$y<$h;++$y) {
-	echo "<tr>";
-	for ($x=0;$x<$w;++$x) {
-		$data = Map($x,$y);
-		$style = ($x == $cityx && $y == $cityy) ? "bgcolor=green" : "";
-		echo "<td $style width=16 height=16>".($data?$data["nvt"]:"")."</td>";
-		//~ echo "<td width=16 height=16>".($data?("nvt=".$data["nvt"].",tag=".$data["tag"]):"")."</td>";
-		//~ echo "<td width=16 height=16>".($data?"x":"")."</td>";
-	}
-	echo "</tr>\n";
-}
-echo "</table>\n";
+// nvt : 1/0 (value is 1 was already discovered, but Not Visited Today)
 
 function TagIconHTML ($tagid) {
 	return img("http://data.dieverdammten.de/gfx/icons/tag_".((int)$tagid).".gif");
 }
 
-echo "tag:<table border=1 cellspacing=0 cellpadding=0>\n";
+echo "<table border=1 cellspacing=0 cellpadding=0>\n";
 for ($y=0;$y<$h;++$y) {
 	echo "<tr>";
 	for ($x=0;$x<$w;++$x) {
 		$data = Map($x,$y);
-		$style = ($x == $cityx && $y == $cityy) ? "bgcolor=green" : "";
-		echo "<td $style width=16 height=16>".($data?TagIconHTML($data["tag"]):"")."</td>";
+		$bgimg = "zone_bg.gif";
+		$tagimg = "";
+		if ($data) {
+			$bHasBuilding = isset($data->building);
+			$bViewed = ((int)$data["nvt"]) == 0;
+			$bgimg = $bViewed ? "zone.gif" : "zone_nv.gif";
+			if ($bHasBuilding) $bgimg = $bViewed ? "ruin.gif" : "ruin_nv.gif";
+			if ($data["danger"] == 1) $bgimg = "zone_d1.gif";
+			if ($data["danger"] == 2) $bgimg = "zone_d2.gif";
+			if ($data["danger"] >= 3) $bgimg = "zone_d3.gif";
+			if ($data["tag"]) $tagimg = TagIconHTML($data["tag"]);
+		}
+		if ($x == $cityx && $y == $cityy) $bgimg = "city.gif";
+		
+		$bgimg = "background='images/map/$bgimg'";
+		
+		$style = ""; // "bgcolor=green"
+		echo "<td $style $bgimg width=20 height=20>".$tagimg."</td>";
 		//~ echo "<td width=16 height=16>".($data?("nvt=".$data["nvt"].",tag=".$data["tag"]):"")."</td>";
 		//~ echo "<td width=16 height=16>".($data?"x":"")."</td>";
 	}
@@ -189,19 +193,7 @@ for ($y=0;$y<$h;++$y) {
 }
 echo "</table>\n";
 
-echo "danger:<table border=1 cellspacing=0 cellpadding=0>\n";
-for ($y=0;$y<$h;++$y) {
-	echo "<tr>";
-	for ($x=0;$x<$w;++$x) {
-		$data = Map($x,$y);
-		$style = ($x == $cityx && $y == $cityy) ? "bgcolor=green" : "";
-		echo "<td $style width=16 height=16>".($data?$data["danger"]:"")."</td>";
-		//~ echo "<td width=16 height=16>".($data?("nvt=".$data["nvt"].",tag=".$data["tag"]):"")."</td>";
-		//~ echo "<td width=16 height=16>".($data?"x":"")."</td>";
-	}
-	echo "</tr>\n";
-}
-echo "</table>\n";
+
 
 /*
 <map hei="12" wid="12"><zone x="3" y="1" nvt="1" tag="5"/><zone x="4" y="1" nvt="1"/><zone x="5" y="1" nvt="1"/><zone x="6" y="1" nvt="1"/><zone x="7" y="1" nvt="1"/><zone x="2" y="2" nvt="1"/><zone x="3" y="2" nvt="1" tag="5"/>
