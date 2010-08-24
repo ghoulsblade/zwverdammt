@@ -21,6 +21,9 @@ if (isset($_REQUEST["LogOut"])) {
 	$gSeelenID = $_REQUEST["SeelenID"];
 }
 
+session_start(); // -> man kann $_SESSION benutzen
+
+
 function PrintFooter () { ?></body></html><?php }
 
 // htmlspecialchars
@@ -127,13 +130,18 @@ $city				= $xml->data[0]->city[0];
 $icon_url_zombie	= "http://www.dieverdammten.de/gfx/forum/smiley/h_zombie.gif";
 //~ $icon_url_attack_in	= "http://data.dieverdammten.de/gfx/forum/smiley/h_zhead.gif";
 $icon_url_attack_in	= $icon_url."small_death.gif";
+$icon_url_death		= $icon_url."small_death.gif";
 $icon_url_def		= $icon_url."item_shield.gif";
 
 $def = (int)($city->defense[0]["total"]);
 $day = (int)$xml->headers[0]->game[0]["days"];
+$gGameDay = $day;
+$gGameID = (int)$xml->headers[0]->game[0]["id"];
 
 $cityx = $xml->data[0]->city["x"];
 $cityy = $xml->data[0]->city["y"];
+$gCityX = $cityx;
+$gCityY = $cityy;
 
 $buerger_draussen = 0;
 $buerger_alive = 0;
@@ -149,7 +157,7 @@ if ($gStoreXML) {
 	$o = false;
 	$o->seelenid = (string)$gSeelenID;
 	$o->time = time();
-	$o->gameid = (string)$xml->headers[0]->game[0]["id"];
+	$o->gameid = $gGameID;
 	$o->cityname = (string)$city["city"];
 	$o->day = (int)$day;
 	$o->xml = $xmlstr;
@@ -173,6 +181,23 @@ $stat = array(0,24,50,97,149,215,294,387,489,595,709,831,935,1057,1190,1354,1548
 $zombie_av = isset($stat[$day]) ? $stat[$day] : false;
 if ($zombie_av) echo "Statistik:".img($icon_url_zombie,"Zombies")."$zombie_av -&gt; ".img($icon_url_def,"def")."$def -&gt; ".img($icon_url_attack_in,"tote")."".max(0,$zombie_av-$def)."<br>\n";
 if (!$bEstMax) echo "<b>Hilf mit die Schätzung im Wachturm zu verbessern!</b><br>\n";
+
+$gBuildingDone = array();
+$gUpgrades = array();
+foreach ($xml->data[0]->upgrades[0]->up as $upgrade) $gUpgrades[(string)$upgrade["name"]] = (int)$upgrade["level"];
+foreach ($xml->data[0]->city[0]->building as $building) $gBuildingDone[(string)$building["name"]] = true;
+
+function CheckBuilding ($bname,$minlevel,$text) {
+	global $gBuildingDone;
+	global $gUpgrades;
+	
+}
+CheckBuilding("Werkstatt",0,"wird benötigt um BaumStümpfe, MetallTrümmer und viele andere Sachen umzuwandeln");
+CheckBuilding("Wachturm",0,"wird benötigt um den Forschungsturm zu bauen");
+CheckBuilding("Forschungsturm",2,"sorgt dafür dass sich leere Felder, auf denen man sonst nur BaumStümpfe und MetallTrümmer findet wieder regenerieren");
+if ($gGameDay == 1) { echo ("bau dein Feldbett zu einem Zelt aus, aber NICHT zu einer Baracke, Holzbretter werden dringend für die Werkstatt benötigt")."<br>\n"; }
+
+
 
 /*
 Unseren Messungen zufolge gab es im Osten ein paar meteorologische Anomalien. 
@@ -203,7 +228,7 @@ $gDefIcon[3] = $icon_url."upgrade_house1.gif";
 
 // job="collec" job="basic"
 echo "<table border=1 cellpadding=0 cellspacing=0>\n";
-foreach ($xml->data[0]->citizens[0]->citizen as $citizen) {
+foreach ($xml->data[0]->citizens[0]->citizen as $citizen) { 
 	if ($citizen["dead"] != "0") continue;
 	$x = (int)$citizen["x"]; $rx = $x - $cityx;
 	$y = (int)$citizen["y"]; $ry = $y - $cityy;
@@ -213,11 +238,19 @@ foreach ($xml->data[0]->citizens[0]->citizen as $citizen) {
 	echo "<tr>";
 	echo "<td>".img($avatar_url.$citizen["avatar"],null,"style='width:90px; height:30px;'")."</td>";
 	echo "<td>".$citizen["name"]."</td>";
-	echo "<td>".$basedef.($bHeld?"+2":"").img($icon_url_def).(isset($gDefIcon[$basedef])?img($gDefIcon[$basedef]):"")."</td>";
+	echo "<td>".$basedef.($bHeld?"+2":"").img($icon_url_def).(isset($gDefIcon[$basedef])?img($gDefIcon[$basedef]):"").(($day==1 && $basedef > 1)?"<b>VERSCHWENDER!</b>":"")."</td>";
 	echo "<td ".($bIsHome?"":"bgcolor=orange").">".($bIsHome?(img("images/map/city.gif")):("$rx,$ry"))."</td>";
 	echo "</tr>\n";
+	
+	// normalo http://data.dieverdammten.de/gfx/icons/item_basic_suit.gif
+	// hero http://data.dieverdammten.de/gfx/icons/small_hero.gif
+	// buddler http://data.dieverdammten.de/gfx/icons/item_pelle.gif
+	// aufklaerer http://data.dieverdammten.de/gfx/icons/item_vest_on.gif
+	// kaempfer http://www.dieverdammten.de/gfx/icons/item_shield.gif
 }
 echo "</table>\n";
+
+
 
 // <citizen dead="0" hero="0" name="Baldwin" avatar="hordes/e/b/a11743a1_9061.jpg" x="4" y="4" id="9061" ban="0" job="basic" out="0" baseDef="3">Rohstoffe bunkern für die Stadt.</citizen>
 
@@ -228,6 +261,44 @@ echo "</td><td valign=top>\n";
 foreach ($xml->data[0]->city[0]->building as $building) {
 	echo img($icon_url.$building["img"].".gif").$building["name"]."<br>\n";
 }
+// ***** ***** ***** ***** ***** upgrades
+
+echo "<br>\n";
+$icon_upgrade_url = "http://data.dieverdammten.de/gfx/icons/item_electro.gif";
+foreach ($xml->data[0]->upgrades[0]->up as $upgrade) {
+	echo img($icon_upgrade_url,"Verbesserung").$upgrade["level"]." ".$upgrade["name"]."<br>\n"; // $upgrade["buildingId"]
+}
+
+
+// ***** ***** ***** ***** ***** TOTE
+echo "<table border=1 cellpadding=0 cellspacing=0>\n";
+$icon_msg_url = "http://data.dieverdammten.de/gfx/forum/smiley/h_chat.gif";
+$icon_warning_url = "http://data.dieverdammten.de/gfx/icons/small_warning.gif";
+$arr = array();
+foreach ($xml->data[0]->cadavers[0]->cadaver as $cadaver) $arr[] = $cadaver;
+function cmp_cadaver ($a,$b) { $a = (int)$a["day"]; $b = (int)$b["day"]; if ($a == $b) return 0; return ($a > $b) ? -1 : 1; }
+usort($arr,"cmp_cadaver");
+foreach ($arr as $cadaver) {
+	$msg = $cadaver->msg;
+	
+	// <cadaver name="Aerox" dtype="1" id="11174" day="4">
+	echo "<tr>";
+	$cleanup = $cadaver->cleanup[0];
+	$cleanup_txt = ($cleanup["user"] != "")?("entsorgt von ".htmlspecialchars($cleanup["user"])." : ".$cleanup["type"]):"";
+	if ($cadaver["day"] == $gGameDay-1) {
+		if ($cleanup && $cleanup["user"] != "") 
+				echo "<td>".img($icon_url_death,$cleanup_txt)."</td>";
+		else	echo "<td>".img($icon_warning_url,"LEICHE ENTSORGEN! SONST STEHT SIE ALS ZOMBIE WIEDER AUF!")."</td>";
+	} else {
+		echo "<td>".img($icon_url_death,$cleanup_txt)."</td>";
+	}
+	echo "<td>".(($msg && $msg != "")?img($icon_msg_url,htmlspecialchars($msg)):"")."</td>";
+	echo "<td>".$cadaver["name"]."</td>";
+	echo "<td>Tag".$cadaver["day"]."</td>";
+	echo "</tr>\n";
+}
+echo "</table>\n";
+
 
 
 echo "</td><td valign=top>\n";
@@ -254,6 +325,7 @@ foreach ($cats as $k => $v) if (!isset($gCatTrans[$k])) $cats2[$k] = $v;
 foreach ($cats2 as $k => $arr) echo "<tr><th>".(isset($gCatTrans[$k])?$gCatTrans[$k]:$k).":</th><td align=right>".implode("</td><td align=right>",$arr)."</td></tr>\n";
 echo "</table>\n";
 
+// TODO : KAPUTTE MARKIEREN!! broken=1 <item name="Großer trockener Stock" count="3" id="15" cat="Weapon" img="staff" broken="1"/>
 
 
 // ***** ***** ***** ***** ***** MAP
@@ -281,6 +353,31 @@ function GetMapToolTip ($x,$y) {
 	}
 	return $txt;
 }
+function MapGetSpecial ($x,$y) {
+	global $gCityX,$gCityY,$gGameID;
+	$rx = $x-$gCityX;
+	$ry = $gCityY-$y;
+	if ($gGameID == 826) {
+		if ($rx ==  0 && $ry ==  1) return img("images/map/dot_leer.gif","($rx/$ry) ?? Zombies, Feld leer");
+		if ($rx == -1 && $ry ==  0) return img("images/map/dot_leer.gif","($rx/$ry) ?? Zombies, Feld leer");
+		if ($rx ==  1 && $ry ==  0) return img("images/map/dot_leer.gif","($rx/$ry) ?? Zombies, Feld leer");
+		
+		if ($rx ==  0 && $ry == -1) return img("images/map/dot_leer.gif","($rx/$ry) 2  Zombies, Feld leer");
+		if ($rx == -1 && $ry == -1) return img("images/map/dot_leer.gif","($rx/$ry) ?? Zombies, Feld leer");
+		if ($rx ==  1 && $ry == -1) return img("images/map/dot_leer.gif","($rx/$ry) ?? Zombies, Feld leer");
+		
+		if ($rx ==  0 && $ry == -2) return img("images/map/dot_leer.gif","($rx/$ry) 4  Zombies, Feld leer");
+		if ($rx == -1 && $ry == -2) return img("images/map/dot_voll.gif","($rx/$ry) ?? Zombies, Feld REGENERIERT! GRABEN!");
+		if ($rx ==  1 && $ry == -2) return img("images/map/dot_voll.gif","($rx/$ry) ?? Zombies, Feld REGENERIERT! GRABEN!");
+		
+		if ($rx ==  0 && $ry == -3) return img("images/map/dot_voll.gif","($rx/$ry) 5  Zombies, (feld wird bis morgen ausgegraben)");
+		if ($rx ==  1 && $ry == -3) return img("images/map/dot_voll.gif","($rx/$ry) ?? Zombies, (feld wird bis morgen ausgegraben)");
+		if ($rx == -1 && $ry == -3) return img("images/map/dot_voll.gif","($rx/$ry) ?? Zombies, Feld REGENERIERT! GRABEN!");
+		
+		if ($rx ==  0 && $ry == -4) return img("images/map/dot_voll.gif","($rx/$ry) ?? Zombies, Feld REGENERIERT! GRABEN!");
+	}
+	return false;
+}
 
 echo "<table border=0 cellspacing=0 cellpadding=0>\n";
 for ($y=0;$y<$h;++$y) {
@@ -302,6 +399,8 @@ for ($y=0;$y<$h;++$y) {
 		if ($x == $cityx && $y == $cityy) $bgimg = "city.gif";
 		
 		$bgimg = "background='images/map/$bgimg'";
+		$special = MapGetSpecial($x,$y);
+		if ($special) $tagimg = $special;
 		
 		$style = ""; // "bgcolor=green"
 		echo "<td $style $bgimg width=20 height=20>".$tagimg."</td>";
@@ -311,9 +410,12 @@ for ($y=0;$y<$h;++$y) {
 	echo "</tr>\n";
 }
 echo "</table>\n";
-echo img("images/map/zone_d1.gif").":1-2 Zombies, alleine ok zur not"."<br>\n";
+echo img("images/map/zone.gif").":0 Zombies, alleine ok"."<br>\n";
+echo img("images/map/zone_d1.gif").":1-2 Zombies, alleine ok"."<br>\n";
 echo img("images/map/zone_d2.gif").":2-4 Zombies, mindestens zu zweit hin!"."<br>\n";
 echo img("images/map/zone_d3.gif").":5+ Zombies, mindestens zu dritt hin!"."<br>\n";
+echo img("images/map/zone_bg.gif").":0-99 Zombies, mindestens zu dritt hin! unerforscht, hier könnte noch eine ruine sein"."<br>\n";
+echo img("images/map/zone_nv.gif").":0-99 Zombies, mindestens zu dritt hin! schon erforscht, aber HEUTE war noch niemand hier"."<br>\n";
 echo img(TagIconURL(5))."als leer markiert, wenn sich die Zone nicht inzwischen regeneriert hat (ForschungsTurm!)<br> findet man hier nur noch ".
 img($icon_url_item."wood_bad.gif","BaumStumpf")." und ".
 img($icon_url_item."metal_bad.gif","MetallTr&uuml;mmer")."<br>\n";

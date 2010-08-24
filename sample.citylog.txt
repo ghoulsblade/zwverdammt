@@ -1,0 +1,265 @@
+# [23:42] Lumy hat das Stadttor geschlossen...
+# [23:26] hagish hat der Stadt folgendes gespendet: icon Krummes Holzbrett
+# [23:26] hagish hat der Stadt folgendes gespendet: icon Beschädigte Autotür
+# [23:26] hagish ist in die Stadt zurückgekehrt.
+# [23:25] hagish hat die Stadt verlassen...
+# [23:24] hagish hat seine Behausung in ein(e,n) Baracke verwandelt (Lvl. 2)...
+# [23:24] hagish hat folgenden Gegenstand aus der Bank genommen: icon Krummes Holzbrett !
+# [23:24] hagish hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [23:23] hagish hat mehr Wasser genommen, als erlaubt ist...
+# [23:21] Für den Bau dieses Gebäudes: Guerilla wurden diese Materialien verbraucht: icon Krummes Holzbrett x2,icon Alteisen x1,icon Handvoll Schrauben und Muttern x2.
+# [23:21] Es wurde ein neues Gebäude gebaut: Guerilla.
+
+Der Bau hat folgende Ressourcen verbraucht: icon Krummes Holzbrett x2,icon Alteisen x1,icon Handvoll Schrauben und Muttern x2.
+# [23:21] hagish hat folgenden Gegenstand aus der Bank genommen: icon Leckeres Steak !
+# [23:21] ghoulsblade hat der Stadt folgendes gespendet: icon Leckeres Steak
+# [23:21] ghoulsblade hat der Stadt folgendes gespendet: icon Leckeres Steak
+# [23:21] ghoulsblade hat der Stadt folgendes gespendet: icon Leckeres Steak
+# [23:20] ghoulsblade hat der Stadt folgendes gespendet: icon Leckeres Steak
+# [23:20] ghoulsblade hat folgenden Gegenstand aus der Bank genommen: icon Zwei-Meter Schlange !
+# [23:19] hagish hat der Stadt folgendes gespendet: icon Zwei-Meter Schlange
+# [23:19] hagish hat der Stadt folgendes gespendet: icon Wasserpistole (leer)
+# [23:19] hagish hat der Stadt folgendes gespendet: icon Krummes Holzbrett
+# [23:19] hagish hat der Stadt folgendes gespendet: icon Konservendose
+# [23:19] hagish hat der Stadt folgendes gespendet: icon Alteisen
+# [23:19] hagish ist in die Stadt zurückgekehrt.
+# [23:02] Lanki46 hat folgenden Gegenstand aus der Bank genommen: icon Leckeres Steak !
+# [22:58] Daiske hat der Stadt folgendes gespendet: icon Unförmige Zementblöcke
+# [22:57] Daiske hat mehr Wasser genommen, als erlaubt ist...
+# [22:57] Daiske hat folgenden Gegenstand aus der Bank genommen: icon Zementsack !
+# [22:35] ChayaTova hat eine Ration Wasser genommen.
+# [22:34] ChayaTova hat etwas an seinem Haus rumgeschraubt...
+# [22:34] ChayaTova hat seine Behausung in ein(e,n) Baracke verwandelt (Lvl. 2)...
+# [22:34] ChayaTova hat folgenden Gegenstand aus der Bank genommen: icon Krummes Holzbrett !
+# [22:33] ChayaTova hat der Stadt folgendes gespendet: icon Leckeres Steak
+# [22:32] Gucci hat der Stadt folgendes gespendet: icon Verrotteter Baumstumpf
+# [22:32] Gucci hat der Stadt folgendes gespendet: icon Angeknackster menschlicher Knochen kaputt
+# [22:32] Gucci ist in die Stadt zurückgekehrt.
+# [22:27] Czerwe hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [22:26] Czerwe hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [22:26] Czerwe hat seine Behausung in ein(e,n) Baracke verwandelt (Lvl. 2)...
+# [22:26] Czerwe hat folgenden Gegenstand aus der Bank genommen: icon Krummes Holzbrett !
+# [22:06] FedmahnKassad hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [22:06] DerVerdammte hat der Stadt folgendes gespendet: icon Ausgeschaltete Nachttischlampe
+# [22:03] ghoulsblade hat der Stadt folgendes gespendet: icon Wasserpistole (3 Ladungen)
+# [22:03] ghoulsblade hat folgenden Gegenstand aus der Bank genommen: icon Wasserpistole (leer) !
+# [22:03] ghoulsblade hat mehr Wasser genommen, als erlaubt ist...
+# [22:01] FedmahnKassad hat folgenden Gegenstand aus der Bank genommen: icon Ration Wasser !
+# [21:45] Fake hat folgenden Gegenstand hergestellt: icon Alteisen und dafür diese Materialien vebraucht: icon Metalltrümmer .
+# [21:30] Lanki46 hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [21:30] Lanki46 hat der Stadt folgendes gespendet: icon Blechplatte
+# [21:30] Lanki46 hat der Stadt folgendes gespendet: icon Verrotteter Baumstumpf
+# [21:30] Lanki46 hat der Stadt folgendes gespendet: icon Verrotteter Baumstumpf
+# [21:30] Lanki46 hat der Stadt folgendes gespendet: icon Verrotteter Baumstumpf
+# [21:28] Lanki46 ist in die Stadt zurückgekehrt.
+# [21:18] Für den Bau dieses Gebäudes: Verteidigungspfähle wurden diese Materialien verbraucht: icon Krummes Holzbrett x6.
+# [21:18] Es wurde ein neues Gebäude gebaut: Verteidigungspfähle.
+
+Der Bau hat folgende Ressourcen verbraucht: icon Krummes Holzbrett x6.
+# [21:17] Dome554 hat mehr Wasser genommen, als erlaubt ist...
+# [20:47] Fake hat folgenden Gegenstand aus der Bank genommen: icon Krebserregender Ofen !
+# [20:44] Herador hat der Stadt folgendes gespendet: icon Ration Wasser
+# [20:44] Herador hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [20:44] Herador hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [20:44] Herador hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [20:42] Herador hat folgenden Gegenstand aus der Bank genommen: icon Leckeres Steak !
+# [20:31] Dome554 hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [20:14] ghoulsblade hat der Stadt folgendes gespendet: icon Kassettenradio (ohne Strom)
+# [20:14] ghoulsblade hat folgenden Gegenstand aus der Bank genommen: icon Kassettenradio (ohne Strom) !
+# [19:16] ghoulsblade hat der Stadt folgendes gespendet: icon Krummes Holzbrett
+# [19:16] ghoulsblade hat der Stadt folgendes gespendet: icon Krummes Holzbrett
+# [19:05] Für den Bau dieses Gebäudes: Trümmerberg wurden diese Materialien verbraucht: icon Alteisen x2.
+# [19:05] Es wurde ein neues Gebäude gebaut: Trümmerberg.
+
+Der Bau hat folgende Ressourcen verbraucht: icon Alteisen x2.
+# [19:00] ghoulsblade hat folgenden Gegenstand aus der Bank genommen: icon Krummes Holzbrett !
+# [19:00] ghoulsblade hat folgenden Gegenstand aus der Bank genommen: icon Krummes Holzbrett !
+# [18:54] ghoulsblade hat der Stadt folgendes gespendet: icon Handvoll Schrauben und Muttern
+# [18:54] ghoulsblade hat der Stadt folgendes gespendet: icon Handvoll Schrauben und Muttern
+# [18:53] Gucci hat die Stadt verlassen...
+# [18:51] Gucci hat der Stadt folgendes gespendet: icon Leckeres Steak
+# [18:50] Gucci hat folgenden Gegenstand aus der Bank genommen: icon Großer knuddeliger Kater !
+# [18:20] Lanki46 hat die Stadt verlassen...
+# [18:18] Lanki46 hat seine Behausung in ein(e,n) Baracke verwandelt (Lvl. 2)...
+# [18:18] Lanki46 hat folgenden Gegenstand aus der Bank genommen: icon Krummes Holzbrett !
+# [18:18] Lanki46 hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [18:16] Lanki46 hat der Stadt folgendes gespendet: icon Kassettenradio (ohne Strom)
+# [18:16] Lanki46 hat der Stadt folgendes gespendet: icon Großer knuddeliger Kater
+# [18:15] Lanki46 hat eine Ration Wasser genommen.
+# [18:04] Gucci hat folgenden Gegenstand aus der Bank genommen: icon Schraubenzieher !
+# [18:04] Gucci hat folgenden Gegenstand aus der Bank genommen: icon Angeknackster menschlicher Knochen !
+# [18:04] Gucci hat der Stadt folgendes gespendet: icon Großer trockener Stock kaputt
+# [18:03] Gucci hat folgenden Gegenstand aus der Bank genommen: icon Großer trockener Stock kaputt !
+# [17:52] ghoulsblade hat folgenden Gegenstand aus der Bank genommen: icon Handvoll Schrauben und Muttern !
+# [17:37] Gucci hat folgenden Gegenstand aus der Bank genommen: icon Machete !
+# [17:37] Gucci hat eine Ration Wasser genommen.
+# [17:19] Gozilla hat folgenden Gegenstand aus der Bank genommen: icon Undefinierbares Fleisch !
+# [17:15] Czerwe hat folgenden Gegenstand aus der Bank genommen: icon Undefinierbares Fleisch !
+# [16:54] DerVerdammte hat seine Behausung in ein(e,n) Baracke verwandelt (Lvl. 2)...
+# [16:54] DerVerdammte hat folgenden Gegenstand aus der Bank genommen: icon Krummes Holzbrett !
+# [16:53] xDarkStar hat folgenden Gegenstand hergestellt: icon Alteisen und dafür diese Materialien vebraucht: icon Metalltrümmer .
+# [16:52] DerVerdammte hat eine Ration Wasser genommen.
+# [16:51] xDarkStar hat seine Behausung in ein(e,n) Baracke verwandelt (Lvl. 2)...
+# [16:51] xDarkStar hat folgenden Gegenstand aus der Bank genommen: icon Krummes Holzbrett !
+# [16:51] xDarkStar hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [16:50] xDarkStar hat folgenden Gegenstand aus der Bank genommen: icon Undefinierbares Fleisch !
+# [16:50] xDarkStar hat eine Ration Wasser genommen.
+# [16:42] merlin hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [16:42] merlin hat folgenden Gegenstand hergestellt: icon Alteisen und dafür diese Materialien vebraucht: icon Metalltrümmer .
+# [16:42] merlin hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [16:40] merlin hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [16:40] Dome554 hat folgenden Gegenstand hergestellt: icon Zusammengeschusterter Holzbalken und dafür diese Materialien vebraucht: icon Krummes Holzbrett .
+# [16:40] Dome554 hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Zusammengeschusterter Holzbalken .
+# [16:39] Dome554 hat eine Ration Wasser genommen.
+# [16:39] Für den Bau dieses Gebäudes: Abfallberg wurden diese Materialien verbraucht: icon Alteisen x2,icon Krummes Holzbrett x2.
+# [16:39] Es wurde ein neues Gebäude gebaut: Abfallberg.
+
+Der Bau hat folgende Ressourcen verbraucht: icon Alteisen x2,icon Krummes Holzbrett x2.
+# [16:38] merlin hat folgenden Gegenstand aus der Bank genommen: icon Leckeres Steak !
+# [16:31] Wrobbel hat folgenden Gegenstand aus der Bank genommen: icon Minibar !
+# [16:16] FedmahnKassad hat folgenden Gegenstand hergestellt: icon Alteisen und dafür diese Materialien vebraucht: icon Metalltrümmer .
+# [16:16] FedmahnKassad hat folgenden Gegenstand hergestellt: icon Alteisen und dafür diese Materialien vebraucht: icon Metalltrümmer .
+# [16:16] FedmahnKassad hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [16:16] FedmahnKassad hat folgenden Gegenstand aus der Bank genommen: icon Undefinierbares Fleisch !
+# [16:16] FedmahnKassad hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [15:56] Gozilla hat der Stadt folgendes gespendet: icon Verrotteter Baumstumpf
+# [15:56] Gozilla hat der Stadt folgendes gespendet: icon Verrotteter Baumstumpf
+# [15:56] Gozilla hat der Stadt folgendes gespendet: icon Verrotteter Baumstumpf
+# [15:56] Gozilla hat der Stadt folgendes gespendet: icon Metalltrümmer
+# [15:56] Gozilla ist in die Stadt zurückgekehrt.
+# [15:55] Gozilla hat die Stadt verlassen...
+# [15:55] Gozilla hat folgenden Gegenstand hergestellt: icon Zusammengeschusterter Holzbalken und dafür diese Materialien vebraucht: icon Krummes Holzbrett .
+# [15:01] Für den Bau dieses Gebäudes: Notfallkonstruktion wurden diese Materialien verbraucht: icon Krummes Holzbrett x5,icon Alteisen x7.
+# [15:01] Es wurde ein neues Gebäude gebaut: Notfallkonstruktion.
+
+Der Bau hat folgende Ressourcen verbraucht: icon Krummes Holzbrett x5,icon Alteisen x7.
+# [15:00] Daiske hat folgenden Gegenstand aus der Bank genommen: icon Kassettenradio !
+# [15:00] Daiske hat folgenden Gegenstand aus der Bank genommen: icon Schaukelstuhl !
+# [13:42] Tischmurmler hat eine Ration Wasser genommen.
+# [12:47] Wrobbel hat der Stadt folgendes gespendet: icon Leckeres Steak
+# [12:47] Wrobbel hat folgenden Gegenstand aus der Bank genommen: icon Großer knuddeliger Kater !
+# [12:45] Wrobbel hat folgenden Gegenstand hergestellt: icon Alteisen und dafür diese Materialien vebraucht: icon Metalltrümmer .
+# [12:36] Baldwin hat der Stadt folgendes gespendet: icon Minibar
+# [12:35] Baldwin hat eine Ration Wasser genommen.
+# [12:25] DamnedIke hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [12:25] DamnedIke hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [12:25] DamnedIke hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [12:24] DamnedIke hat folgenden Gegenstand aus der Bank genommen: icon Undefinierbares Fleisch !
+# [12:09] FedmahnKassad hat folgenden Gegenstand hergestellt: icon Alteisen und dafür diese Materialien vebraucht: icon Metalltrümmer .
+# [12:09] FedmahnKassad hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [11:59] FedmahnKassad hat eine Ration Wasser genommen.
+# [10:57] Tankstop hat folgenden Gegenstand hergestellt: icon Alteisen und dafür diese Materialien vebraucht: icon Metalltrümmer .
+# [10:57] Tankstop hat folgenden Gegenstand hergestellt: icon Alteisen und dafür diese Materialien vebraucht: icon Metalltrümmer .
+# [10:57] Tankstop hat folgenden Gegenstand hergestellt: icon Alteisen und dafür diese Materialien vebraucht: icon Metalltrümmer .
+# [10:56] Morlon hat der Stadt folgendes gespendet: icon Undefinierbares Fleisch
+# [10:56] Tankstop hat folgenden Gegenstand aus der Bank genommen: icon Undefinierbares Fleisch !
+# [10:56] Morlon hat der Stadt folgendes gespendet: icon Undefinierbares Fleisch
+# [10:56] Morlon hat der Stadt folgendes gespendet: icon Undefinierbares Fleisch
+# [10:56] Morlon hat der Stadt folgendes gespendet: icon Undefinierbares Fleisch
+# [10:56] Morlon hat folgenden Gegenstand aus der Bank genommen: icon Riesige Ratte !
+# [10:56] Morlon hat folgenden Gegenstand aus der Bank genommen: icon Riesige Ratte !
+# [10:56] Morlon hat der Stadt folgendes gespendet: icon Undefinierbares Fleisch
+# [10:56] Morlon hat der Stadt folgendes gespendet: icon Undefinierbares Fleisch
+# [10:55] Morlon hat folgenden Gegenstand aus der Bank genommen: icon Huhn !
+# [10:54] Herador hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [10:54] Herador hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [10:45] Für den Bau dieses Gebäudes: Metzgerei wurden diese Materialien verbraucht: icon Krummes Holzbrett x9,icon Alteisen x4.
+# [10:45] Es wurde ein neues Gebäude gebaut: Metzgerei.
+
+Der Bau hat folgende Ressourcen verbraucht: icon Krummes Holzbrett x9,icon Alteisen x4.
+# [10:26] DamnedIke hat eine Ration Wasser genommen.
+# [10:10] Tankstop hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [10:10] Tankstop hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [10:10] Tankstop hat mehr Wasser genommen, als erlaubt ist...
+# [10:09] Tankstop hat folgenden Gegenstand hergestellt: icon Bandage und dafür diese Materialien vebraucht: icon Metallkiste .
+# [10:07] Tankstop hat eine Ration Wasser genommen.
+# [09:19] ghoulsblade hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [09:18] ghoulsblade hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [09:18] ghoulsblade hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [09:15] ghoulsblade hat folgenden Gegenstand aus der Bank genommen: icon Handvoll Schrauben und Muttern !
+# [08:41] Herador hat eine Ration Wasser genommen.
+# [08:37] ghoulsblade hat eine Ration Wasser genommen.
+# [08:37] ghoulsblade hat der Stadt folgendes gespendet: icon Alteisen
+# [08:37] ghoulsblade hat der Stadt folgendes gespendet: icon Kupferrohr
+# [08:37] ghoulsblade hat der Stadt folgendes gespendet: icon Metallkiste
+# [08:37] ghoulsblade hat der Stadt folgendes gespendet: icon Machete
+# [08:37] ghoulsblade hat der Stadt folgendes gespendet: icon Reparaturset
+# [08:33] ghoulsblade ist in die Stadt zurückgekehrt.
+# [08:33] Unser tapferer Bürger ghoulsblade hat Baldwin zurück in die Stadt begleitet!
+# [08:24] Fake hat eine Ration Wasser genommen.
+# [08:10] hagish hat die Stadt verlassen...
+# [08:08] hagish hat eine Ration Wasser genommen.
+# [07:41] Czerwe hat eine Ration Wasser genommen.
+# [06:57] Lumy hat seine Behausung in ein(e,n) Baracke verwandelt (Lvl. 2)...
+# [06:56] Lumy hat folgenden Gegenstand aus der Bank genommen: icon Krummes Holzbrett !
+# [06:56] Lumy hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [06:49] Gozilla hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [06:49] Gozilla hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [06:48] Gozilla hat seine Behausung in ein(e,n) Baracke verwandelt (Lvl. 2)...
+# [06:46] Gozilla hat mehr Wasser genommen, als erlaubt ist...
+# [06:45] Gozilla hat eine Ration Wasser genommen.
+# [06:45] Lumy hat eine Ration Wasser genommen.
+# [03:24] Daiske hat eine Ration Wasser genommen.
+# [02:17] Wrobbel hat folgenden Gegenstand hergestellt: icon Alteisen und dafür diese Materialien vebraucht: icon Metalltrümmer .
+# [02:16] Wrobbel hat eine Ration Wasser genommen.
+# [02:15] Morlon hat eine Ration Wasser genommen.
+# [02:14] Für den Bau dieses Gebäudes: Brunnenbohrer wurden diese Materialien verbraucht: icon Zusammengeschusterter Holzbalken x7,icon Metallstruktur x2.
+# [02:14] Es wurde ein neues Gebäude gebaut: Brunnenbohrer.
+
+Der Bau hat folgende Ressourcen verbraucht: icon Zusammengeschusterter Holzbalken x7,icon Metallstruktur x2.
+# [02:14] Das Gebäude: Brunnenbohrer hat der Stadt +40 zusätzliche Wasserrationen gebracht!
+# [02:13] Morlon hat folgenden Gegenstand aus der Bank genommen: icon Verdächtige Speise !
+# [01:46] Morlon hat der Stadt folgendes gespendet: icon Minibar kaputt
+# [01:45] Morlon hat der Stadt folgendes gespendet: icon Krebserregender Ofen
+# [01:45] Morlon hat der Stadt folgendes gespendet: icon Krebserregender Ofen
+# [01:45] Morlon hat der Stadt folgendes gespendet: icon Kassettenradio
+# [01:23] ChayaTova hat der Stadt folgendes gespendet: icon Verdächtige Speise
+# [01:22] ChayaTova hat folgenden Gegenstand aus der Bank genommen: icon Knochen mit Fleisch !
+# [01:20] Fake hat folgenden Gegenstand aus der Bank genommen: icon Krummes Holzbrett !
+# [01:04] Tischmurmler hat der Stadt folgendes gespendet: icon Angeknackster menschlicher Knochen
+# [00:54] DamnedIke hat der Stadt folgendes gespendet: icon Verrotteter Baumstumpf
+# [00:54] DamnedIke hat der Stadt folgendes gespendet: icon Verrotteter Baumstumpf
+# [00:54] DamnedIke hat der Stadt folgendes gespendet: icon Verrotteter Baumstumpf
+# [00:54] DamnedIke hat der Stadt folgendes gespendet: icon Verrotteter Baumstumpf
+# [00:54] DamnedIke ist in die Stadt zurückgekehrt.
+# [00:53] Tischmurmler hat seine Behausung in ein(e,n) Baracke verwandelt (Lvl. 2)...
+# [00:52] Tischmurmler hat folgenden Gegenstand aus der Bank genommen: icon Krummes Holzbrett !
+# [00:51] Herador hat seine Behausung in ein(e,n) Baracke verwandelt (Lvl. 2)...
+# [00:51] Baldwin hat die Stadt verlassen...
+# [00:51] Herador hat folgenden Gegenstand aus der Bank genommen: icon Krummes Holzbrett !
+# [00:50] Tischmurmler hat bei der Plünderung von + Legolas369(s) Haus diesen Gegenstand gestohlen: icon Angeknackster menschlicher Knochen !
+# [00:50] Wrobbel hat der Stadt folgendes gespendet: icon Krummes Holzbrett
+# [00:50] ghoulsblade hat die Stadt verlassen...
+# [00:41] ghoulsblade hat seine Behausung in ein(e,n) Baracke verwandelt (Lvl. 2)...
+# [00:41] ghoulsblade hat folgenden Gegenstand aus der Bank genommen: icon Krummes Holzbrett !
+# [00:37] DerVerdammte hat der Stadt folgendes gespendet: icon Schaukelstuhl
+# [00:37] DerVerdammte hat der Stadt folgendes gespendet: icon Krummes Holzbrett
+# [00:37] ghoulsblade hat folgenden Gegenstand aus der Bank genommen: icon Reparaturset !
+# [00:37] ghoulsblade hat folgenden Gegenstand aus der Bank genommen: icon Machete !
+# [00:36] Daiske hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [00:36] Daiske hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [00:36] Daiske hat folgenden Gegenstand hergestellt: icon Krummes Holzbrett und dafür diese Materialien vebraucht: icon Verrotteter Baumstumpf .
+# [00:35] DamnedIke hat die Stadt verlassen...
+# [00:35] ghoulsblade ist in die Stadt zurückgekehrt.
+# [00:35] DamnedIke hat folgenden Gegenstand aus der Bank genommen: icon Verbrauchte Fackel !
+# [00:35] ghoulsblade hat die Stadt verlassen...
+# [00:35] DamnedIke hat folgenden Gegenstand aus der Bank genommen: icon Verbrauchte Fackel !
+# [00:35] Wrobbel hat bei der Plünderung von + Legolas369(s) Haus diesen Gegenstand gestohlen: icon Krummes Holzbrett !
+# [00:35] DamnedIke hat folgenden Gegenstand aus der Bank genommen: icon Verbrauchte Fackel !
+# [00:35] DamnedIke hat folgenden Gegenstand aus der Bank genommen: icon Verbrauchte Fackel !
+# [00:34] DamnedIke hat der Stadt folgendes gespendet: icon Krummes Holzbrett
+# [00:34] DamnedIke hat bei der Plünderung von + Legolas369(s) Haus diesen Gegenstand gestohlen: icon Krummes Holzbrett !
+# [00:33] ghoulsblade hat folgenden Gegenstand aus der Bank genommen: icon Knochen mit Fleisch !
+# [00:33] Daiske hat der Stadt folgendes gespendet: icon Unförmige Zementblöcke
+# [00:33] Lumy hat der Stadt folgendes gespendet: icon Großer knuddeliger Kater
+# [00:32] DamnedIke ist in die Stadt zurückgekehrt.
+# [00:32] DamnedIke hat die Stadt verlassen...
+# [00:32] DamnedIke hat folgenden Gegenstand aus der Bank genommen: icon Zonenmarker 'Radius' !
+# [00:32] Und wieder 'ne Leiche weniger! + Legolas369 wurde von Lumy entsorgt!
+# [00:32] Lumy hat bei der Plünderung von + Legolas369(s) Haus diesen Gegenstand gestohlen: icon Ration Wasser !
+# [00:31] Lumy hat das Stadttor geöffnet!
+# [00:00] Nicht ein Zombie hat die Stadt betreten!
+# [00:00] Deine ehemaligen Mitbürger haben sich an den Verteidigungsanlagen der Stadt ihre faulenden Zähne ausgebissen und sind wieder hungrig abgezogen.
+# [00:00] Wie aus dem Nichts stand die Meute auf einmal vor dem Stadttor...
+# [00:00] 10 verstorbene Bürger wurden in der letzten Zombiemeute gesichtet. Zähnefletschend und mit leeren Blick wankten sie durch die Gegend...
+# [00:00] Resigniert und untröstlich sahen die Bürger wie eine Horde von 232 Zombies sich in Richtung Stadt bewegte... 
