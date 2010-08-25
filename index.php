@@ -55,6 +55,42 @@ font-size:8pt;
 align:center;
 width:400px;
 }
+.map td {
+	width: 21px; height: 21px;
+	background-repeat:no-repeat;
+	margin: 0px;
+	padding: 0px;
+}
+//.mapcell img {
+	//margin: 0px;
+	//padding: 0px;
+	//~ width: 18px; height: 18px;
+//}
+.bframe {
+	border:1px solid black;
+}
+.mapaddsmall_input {
+	font-family:Arial,sans-serif;
+	color:#000000;
+	background-color:#F4FFF4;
+	font-size:12px;
+	border: 1px solid #008030;
+	height:18px;
+	//~ width:20px;
+	padding:0px;
+	margin:0px;
+}
+.mapaddsmall_button {
+	font-family:Arial,sans-serif;
+	color:#000000;
+	background-color:#F4FFF4;
+	font-size:12px;
+	border: 1px solid #008030;
+	height:20px;
+	width:20px;
+	// padding:0px;
+	margin:2px 0px 0px 0px; // top,bottom,left,right
+}
 </style>
 </head>
 <body>
@@ -191,15 +227,18 @@ echo "Schätzung".($bEstMax?"(gut)":"(<b>schlecht</b>)").":".img($icon_url_zombie
 $stat = array(0,24,50,97,149,215,294,387,489,595,709,831,935,1057,1190,1354,1548,1738,1926,2140,2353,2618,2892,3189,3506,3882,3952,4393,4841,5339,5772,6271,6880,7194,7736,8285,8728,9106,9671,9888,10666,11508,11705,12608,12139,12921,15248,11666);
 $zombie_av = isset($stat[$day]) ? $stat[$day] : false;
 if ($zombie_av) echo "Statistik:".img($icon_url_zombie,"Zombies")."$zombie_av -&gt; ".img($icon_url_def,"def")."$def -&gt; ".img($icon_url_attack_in,"tote")."".max(0,$zombie_av-$def)."<br>\n";
+$def_graben_delta = array(20,13,21,32,33,51,0);
+//~ echo "Großer Graben verbessern/bauen:+".$def_graben_delta[GetBuildingLevel("Großer Graben")+1].img($icon_url_def,"def")."<br>\n";
 if (!$bEstMax) echo "<b>Hilf mit die Schätzung im Wachturm zu verbessern!</b><br>\n";
 
 $gBuildingDone = array();
 $gUpgrades = array();
-foreach ($xml->data[0]->upgrades[0]->up as $upgrade) $gUpgrades[(string)$upgrade["name"]] = (int)$upgrade["level"];
-foreach ($xml->data[0]->city[0]->building as $building) $gBuildingDone[(string)$building["name"]] = true;
+foreach ($xml->data[0]->upgrades[0]->up as $upgrade) $gUpgrades[MyEsc($upgrade["name"])] = (int)$upgrade["level"];
+foreach ($xml->data[0]->city[0]->building as $building) $gBuildingDone[MyEsc($building["name"])] = true;
 
 function GetBuildingLevel ($bname) { // -1= not build, 0=built but no upgrade, >1 = upgrade level 
 	global $gBuildingDone,$gUpgrades;
+	$bname = MyEsc($bname);
 	if (!isset($gBuildingDone[$bname])) return -1;
 	if (!isset($gUpgrades[$bname])) return 0;
 	return $gUpgrades[$bname];
@@ -373,37 +412,65 @@ function GetMapToolTip ($x,$y) {
 	}
 	return $txt;
 }
+
+function AddMapNote ($rx,$ry,$icon,$zombies,$txt) {
+	global $gGameID,$gSeelenID,$gGameDay;
+	$o = false;
+	$o->x = $rx;
+	$o->y = $ry;
+	$o->icon = $icon;
+	$o->zombies = $zombies;
+	$o->txt = $txt;
+	$o->time = time();
+	$o->day = $gGameDay;
+	$o->gameid = $gGameID;
+	$o->seelenid = $gSeelenID;
+	sql("INSERT INTO mapnote SET ".obj2sql($o));
+}
+function GetMapNote ($x,$y) { global $gGameID; return sqlgetobject("SELECT * FROM mapnote WHERE ".arr2sql(array("gameid"=>$gGameID,"x"=>$x,"y"=>$y)," AND ")." ORDER BY `id` DESC LIMIT 1"); }
+
+if ($gGameID == 826 && !sqlgetone("SELECT 1 FROM mapnote WHERE gameid = ".intval($gGameID))) {
+	AddMapNote( 0, 1,0,-1,"");
+	AddMapNote(-1, 0,0,-1,"");
+	AddMapNote( 1, 0,0,-1,"");
+	AddMapNote( 0,-1,0,2 ,"");
+	AddMapNote(-1,-1,0,-1,"");
+	AddMapNote( 1,-1,0,-1,"");
+	AddMapNote( 0,-2,0,4 ,"");
+	AddMapNote(-1,-2,1,-1,"REGENERIERT! GRABEN!");
+	AddMapNote( 1,-2,1,-1,"(Feld wird bis morgen ausgegraben)");
+	AddMapNote( 0,-3,0,5 ,"");
+	AddMapNote( 1,-3,0,4 ,"");
+	AddMapNote(-1,-3,1,-1,"REGENERIERT! GRABEN!");
+	AddMapNote( 2,-3,0,-1,"");
+	AddMapNote( 1,-4,1,6 ,"(Feld wird bis morgen ausgegraben)");
+	AddMapNote( 0,-4,1,-1,"REGENERIERT! GRABEN!");
+	AddMapNote( 2,-4,1,-1,"REGENERIERT! GRABEN!");
+	AddMapNote( 1,-5,1,-1,"REGENERIERT! GRABEN!");
+}
+
+
+function GetZombieNumText ($x,$y) {
+	$data = Map($x,$y);
+	if ($data["danger"] == 1) return "1-2";
+	if ($data["danger"] == 2) return "2-4";
+	if ($data["danger"] >= 3) return "5+";
+	if (((int)$data["nvt"]) == 0) return "0"; // heute viewed und kein danger
+	return "0-99";
+}
+
 function MapGetSpecial ($x,$y) {
-	global $gCityX,$gCityY,$gGameID;
+	global $gCityX,$gCityY,$gGameID,$gGameDay;
 	$rx = $x-$gCityX;
 	$ry = $gCityY-$y;
-	if ($gGameID == 826) {
-		if ($rx ==  0 && $ry ==  1) return img("images/map/dot_leer.gif","($rx/$ry) ?? Zombies, Feld leer");
-		if ($rx == -1 && $ry ==  0) return img("images/map/dot_leer.gif","($rx/$ry) ?? Zombies, Feld leer");
-		if ($rx ==  1 && $ry ==  0) return img("images/map/dot_leer.gif","($rx/$ry) ?? Zombies, Feld leer");
-		
-		if ($rx ==  0 && $ry == -1) return img("images/map/dot_leer.gif","($rx/$ry) 2  Zombies, Feld leer");
-		if ($rx == -1 && $ry == -1) return img("images/map/dot_leer.gif","($rx/$ry) ?? Zombies, Feld leer");
-		if ($rx ==  1 && $ry == -1) return img("images/map/dot_leer.gif","($rx/$ry) ?? Zombies, Feld leer");
-		
-		if ($rx ==  0 && $ry == -2) return img("images/map/dot_leer.gif","($rx/$ry) 4  Zombies, Feld leer");
-		if ($rx == -1 && $ry == -2) return img("images/map/dot_voll.gif","($rx/$ry) ?? Zombies, Feld REGENERIERT! GRABEN!");
-		if ($rx ==  1 && $ry == -2) return img("images/map/dot_voll.gif","($rx/$ry) ?? Zombies, (Feld wird bis morgen ausgegraben)");
-		
-		if ($rx ==  0 && $ry == -3) return img("images/map/dot_leer.gif","($rx/$ry) 5  Zombies, Feld leer");
-		if ($rx ==  1 && $ry == -3) return img("images/map/dot_leer.gif","($rx/$ry) 4  Zombies, Feld leer");
-		if ($rx == -1 && $ry == -3) return img("images/map/dot_voll.gif","($rx/$ry) ?? Zombies, Feld REGENERIERT! GRABEN!");
-		if ($rx ==  2 && $ry == -3) return img("images/map/dot_leer.gif","($rx/$ry) ?? Zombies, Feld leer");
-		
-		if ($rx ==  1 && $ry == -4) return img("images/map/dot_voll.gif","($rx/$ry) 6  Zombies, (Feld wird bis morgen ausgegraben)");
-		if ($rx ==  0 && $ry == -4) return img("images/map/dot_voll.gif","($rx/$ry) ?? Zombies, Feld REGENERIERT! GRABEN!");
-		if ($rx ==  2 && $ry == -4) return img("images/map/dot_voll.gif","($rx/$ry) ?? Zombies, Feld REGENERIERT! GRABEN!");
-		
-		if ($rx ==  1 && $ry == -5) return img("images/map/dot_voll.gif","($rx/$ry) ?? Zombies, Feld REGENERIERT! GRABEN!");
-	}
+	$o = GetMapNote($rx,$ry); if (!$o) return false;
+	$old = ($o->day != $gGameDay) ? "_old" : "";
+	if ($o->icon == 0) return img("images/map/dot8_leer".$old.".gif","($rx/$ry) ".(($o->zombies >= 0)?$o->zombies:GetZombieNumText($x,$y))." Zombies. (leer) ".$o->txt);
+	if ($o->icon == 1) return img("images/map/dot8_voll".$old.".gif","($rx/$ry) ".(($o->zombies >= 0)?$o->zombies:GetZombieNumText($x,$y))." Zombies. (voll) ".$o->txt);
 	return false;
 }
 
+echo "<span class='map'>\n";
 echo "<table border=0 cellspacing=0 cellpadding=0>\n";
 for ($y=0;$y<$h;++$y) {
 	echo "<tr>";
@@ -426,21 +493,39 @@ for ($y=0;$y<$h;++$y) {
 		$bgimg = "background='images/map/$bgimg'";
 		$special = MapGetSpecial($x,$y);
 		if ($special) $tagimg = $special;
+		//~ $tagimg = "";
 		
 		$style = ""; // "bgcolor=green"
-		echo "<td $style $bgimg width=20 height=20>".$tagimg."</td>";
+		echo "<td $style $bgimg><span class='mapcell'>".trim($tagimg)."</span></td>";
 		//~ echo "<td width=16 height=16>".($data?("nvt=".$data["nvt"].",tag=".$data["tag"]):"")."</td>";
 		//~ echo "<td width=16 height=16>".($data?"x":"")."</td>";
 	}
 	echo "</tr>\n";
 }
 echo "</table>\n";
-echo img("images/map/zone.gif").":0 Zombies, alleine ok"."<br>\n";
-echo img("images/map/zone_d1.gif").":1-2 Zombies, alleine ok"."<br>\n";
-echo img("images/map/zone_d2.gif").":2-4 Zombies, mindestens zu zweit hin!"."<br>\n";
-echo img("images/map/zone_d3.gif").":5+ Zombies, mindestens zu dritt hin!"."<br>\n";
-echo img("images/map/zone_bg.gif").":0-99 Zombies, mindestens zu dritt hin! unerforscht, hier könnte noch eine ruine sein"."<br>\n";
-echo img("images/map/zone_nv.gif").":0-99 Zombies, mindestens zu dritt hin! schon erforscht, aber HEUTE war noch niemand hier"."<br>\n";
+echo "</span>\n";
+
+?>
+<form action="?" method="post" class='mapadd' id='form_mapadd_1'>
+	<input class='mapaddsmall_input' type="text" size="1" maxlength="3" name="x" value=0>/
+	<input class='mapaddsmall_input' type="text" size="1" maxlength="3" name="y" value=0>
+	<span class='bframe'><input type="radio" name="dot" value="-1"></span>
+	<span class='bframe'><input type="radio" name="dot" value="1"><?=img("images/map/dot8_voll.gif")?></span>
+	<span class='bframe'><input type="radio" name="dot" value="0"><?=img("images/map/dot8_leer.gif")?></span>
+	<input class='mapaddsmall_input' type="text" size="60" name="msg">
+	<input class='mapaddsmall_button' type="button" name="BLA" value="ok" onclick="alert('todo')">
+</form>
+<?php
+
+
+
+
+echo img("images/map/zone.gif")		.img($icon_url_zombie)."0, alleine ok"."<br>\n";
+echo img("images/map/zone_d1.gif")	.img($icon_url_zombie)."1-2, alleine ok"."<br>\n";
+echo img("images/map/zone_d2.gif")	.img($icon_url_zombie)."2-4, mindestens zu zweit hin!"."<br>\n";
+echo img("images/map/zone_d3.gif")	.img($icon_url_zombie)."5+, mindestens zu dritt hin!"."<br>\n";
+echo img("images/map/zone_bg.gif")	.img($icon_url_zombie)."0-99, mindestens zu dritt hin! unerforscht, hier könnte noch eine ruine sein"."<br>\n";
+echo img("images/map/zone_nv.gif")	.img($icon_url_zombie)."0-99, mindestens zu dritt hin! schon erforscht, aber HEUTE war noch niemand hier"."<br>\n";
 echo img(TagIconURL(5))."als leer markiert, wenn sich die Zone nicht inzwischen regeneriert hat (ForschungsTurm!)<br> findet man hier nur noch ".
 img($icon_url_item."wood_bad.gif","BaumStumpf")." und ".
 img($icon_url_item."metal_bad.gif","MetallTr&uuml;mmer")."<br>\n";
