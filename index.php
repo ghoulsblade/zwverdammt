@@ -4,12 +4,21 @@ require_once("roblib.php");
 function href ($url,$title=false) { return "<a href='$url'>".($title?$title:$url)."</a>"; }
 
 //~ function MyEscXML ($txt) { return htmlentities($txt); } // ö->uuml;
-function MyEscXML ($txt) { return strtr($txt,array("roßer"=>"rosser","ö"=>"&ouml;","ü"=>"&uuml;","ä"=>"ae","Ö"=>"&Ouml;","Ü"=>"&Uuml;","Ä"=>"&Auml;")); } // htmlentities
-function MyEsc ($txt) { return $txt; } // htmlentities
+function MyEscXML ($txt) { 
+	//~ return utf8_decode($txt);
+	return strtr($txt,array("roßer"=>"rosser","ö"=>"&ouml;","ü"=>"&uuml;","ä"=>"ae","Ö"=>"&Ouml;","Ü"=>"&Uuml;","Ä"=>"&Auml;")); 
+		//~ wegen den umlauten ein tip: utf8_decode 
+} // htmlentities
+function MyEsc ($txt) { return utf8_decode($txt); } // htmlentities
+function MyEscHTML ($txt) { return utf8_decode($txt); } // htmlentities
 //~ function MyEsc ($txt) { return strtr($txt,array("Ã?"=>"ß","Ã¼"=>"ü","Ã¶"=>"ö")); } // htmlentities
 function img ($url,$title=false,$special="") { $title = $title?(MyEsc($title)):$title; return "<img $special src='$url' ".($title?("alt='$title' title='$title'"):"")."/>"; }
 
+$gShowAvatars = false;
+
 $gSeelenID = isset($_COOKIE["SeelenID"]) ? $_COOKIE["SeelenID"] : false;
+$gUseSampleData = isset($_REQUEST["sample"]);
+if ($gUseSampleData) $gSeelenID = "abcdefghijklmnopqrstuvwxyz";
 
 if (isset($_REQUEST["LogOut"])) {
 	setcookie ("SeelenID", "", time() - 3600);
@@ -69,6 +78,7 @@ function SeelenID_EntryForm () {
 	global $gSeelenID;
 	if ($gSeelenID) return;
 	?> <form action="" method="POST"> Seelen-ID:<input name="SeelenID"> <input type="submit" name="Login" value="Login"> </form> <?php
+	echo href("?sample=1","(Vorschau ohne SeelenID)")."<br>\n";
 	PrintFooter(); exit(0);
 }
 
@@ -90,6 +100,7 @@ echo "<table><tr><td valign=top>";
 		href("http://emptycookie.de/index.php?id=".($gSeelenID?$gSeelenID:""),"Übersicht")." ".
 		href("http://nobbz.de/wiki/","NobbzWiki")." ".
 		href("http://forum.der-holle.de/","HolleForum")." ".
+		href("http://chat.mibbit.com/?channel=%23dieverdammten&server=irc.mibbit.net","Chat")." ".
 		href("http://www.patamap.com/index.php?page=patastats","PataMap")." ".
 		href($xmlurl,"XmlStream")." ". 
 		"<br>\n";
@@ -109,7 +120,7 @@ SeelenID_EntryForm();
 $gStoreXML = true;
 $gDemo = false;
 $xmlurl_sample = "sample.xml";
-if (isset($_REQUEST["sample"])) { $xmlurl = $xmlurl_sample; $gDemo = true; $gStoreXML = false; }
+if ($gUseSampleData) { $xmlurl = $xmlurl_sample; $gDemo = true; $gStoreXML = false; }
 $xmlstr = file_get_contents($xmlurl);
 @$xml = simplexml_load_string(MyEscXML($xmlstr));
 
@@ -187,14 +198,22 @@ $gUpgrades = array();
 foreach ($xml->data[0]->upgrades[0]->up as $upgrade) $gUpgrades[(string)$upgrade["name"]] = (int)$upgrade["level"];
 foreach ($xml->data[0]->city[0]->building as $building) $gBuildingDone[(string)$building["name"]] = true;
 
-function CheckBuilding ($bname,$minlevel,$text) {
-	global $gBuildingDone;
-	global $gUpgrades;
-	
+function GetBuildingLevel ($bname) { // -1= not build, 0=built but no upgrade, >1 = upgrade level 
+	global $gBuildingDone,$gUpgrades;
+	if (!isset($gBuildingDone[$bname])) return -1;
+	if (!isset($gUpgrades[$bname])) return 0;
+	return $gUpgrades[$bname];
 }
-CheckBuilding("Werkstatt",0,"wird benötigt um BaumStümpfe, MetallTrümmer und viele andere Sachen umzuwandeln");
-CheckBuilding("Wachturm",0,"wird benötigt um den Forschungsturm zu bauen");
-CheckBuilding("Forschungsturm",2,"sorgt dafür dass sich leere Felder, auf denen man sonst nur BaumStümpfe und MetallTrümmer findet wieder regenerieren");
+
+function CheckBuilding ($bname,$minlevel,$text,$pre="den/die") { 
+	if (GetBuildingLevel($bname) < 0) { echo "Hilf mit ".$pre." <b>$bname</b> zu bauen: ".$text."<br>\n"; return false; }
+	if (GetBuildingLevel($bname) < $minlevel) { echo "Hilf mit ".$pre." <b>$bname</b> als <b>Verbesserung des Tages</b> zu wählen: ".$text."<br>\n"; return false; }
+	return true;
+}
+if (CheckBuilding("Werkstatt",0,"wird benötigt um BaumStümpfe, MetallTrümmer und viele andere Sachen umzuwandeln","die")) {
+	CheckBuilding("Wachturm",0,"wird benötigt um den Forschungsturm zu bauen","den");
+	CheckBuilding("Forschungsturm",2,"sorgt dafür dass sich leere Felder, auf denen man sonst nur BaumStümpfe und MetallTrümmer findet wieder regenerieren","den");
+}
 if ($gGameDay == 1) { echo ("bau dein Feldbett zu einem Zelt aus, aber NICHT zu einer Baracke, Holzbretter werden dringend für die Werkstatt benötigt")."<br>\n"; }
 
 
@@ -236,8 +255,8 @@ foreach ($xml->data[0]->citizens[0]->citizen as $citizen) {
 	$bHeld = $citizen["hero"] != "0";
 	$basedef = (int)$citizen["baseDef"];
 	echo "<tr>";
-	echo "<td>".img($avatar_url.$citizen["avatar"],null,"style='width:90px; height:30px;'")."</td>";
-	echo "<td>".$citizen["name"]."</td>";
+	if ($gShowAvatars) echo "<td>".img($avatar_url.$citizen["avatar"],null,"style='width:90px; height:30px;'")."</td>";
+	echo "<td>".MyEscHTML($citizen["name"])."</td>";
 	echo "<td>".$basedef.($bHeld?"+2":"").img($icon_url_def).(isset($gDefIcon[$basedef])?img($gDefIcon[$basedef]):"").(($day==1 && $basedef > 1)?"<b>VERSCHWENDER!</b>":"")."</td>";
 	echo "<td ".($bIsHome?"":"bgcolor=orange").">".($bIsHome?(img("images/map/city.gif")):("$rx,$ry"))."</td>";
 	echo "</tr>\n";
@@ -259,14 +278,14 @@ echo "</td><td valign=top>\n";
 
 // ***** ***** ***** ***** ***** GEBÄUDE
 foreach ($xml->data[0]->city[0]->building as $building) {
-	echo img($icon_url.$building["img"].".gif").$building["name"]."<br>\n";
+	echo img($icon_url.$building["img"].".gif").MyEscHTML($building["name"])."<br>\n";
 }
 // ***** ***** ***** ***** ***** upgrades
 
 echo "<br>\n";
 $icon_upgrade_url = "http://data.dieverdammten.de/gfx/icons/item_electro.gif";
 foreach ($xml->data[0]->upgrades[0]->up as $upgrade) {
-	echo img($icon_upgrade_url,"Verbesserung").$upgrade["level"]." ".$upgrade["name"]."<br>\n"; // $upgrade["buildingId"]
+	echo img($icon_upgrade_url,"Verbesserung").$upgrade["level"]." ".MyEscHTML($upgrade["name"])."<br>\n"; // $upgrade["buildingId"]
 }
 
 
@@ -293,7 +312,7 @@ foreach ($arr as $cadaver) {
 		echo "<td>".img($icon_url_death,$cleanup_txt)."</td>";
 	}
 	echo "<td>".(($msg && $msg != "")?img($icon_msg_url,htmlspecialchars($msg)):"")."</td>";
-	echo "<td>".$cadaver["name"]."</td>";
+	echo "<td>".MyEscHTML($cadaver["name"])."</td>";
 	echo "<td>Tag".$cadaver["day"]."</td>";
 	echo "</tr>\n";
 }
@@ -309,9 +328,10 @@ echo "</td><td valign=top>\n";
 //~ echo "Bank:<br>";
 $cats = array();
 foreach ($xml->data[0]->bank[0]->item as $item) { 
-	$c = $item["count"];
+	$c = (int)$item["count"];
+	$b = (int)$item["broken"];
 	$cat = (string)$item["cat"];
-	$html = (($c>1)?($c."x"):"").img($icon_url_item.$item["img"].".gif",$item["name"]);
+	$html = (($c>1)?($c."x"):"").img($icon_url_item.$item["img"].".gif",$item["name"]).(($b>0)?"($b kaputt)":"");
 	if (!isset($cats[$cat])) $cats[$cat] = array();
 	$cats[$cat][] = $html;
 }
@@ -368,13 +388,18 @@ function MapGetSpecial ($x,$y) {
 		
 		if ($rx ==  0 && $ry == -2) return img("images/map/dot_leer.gif","($rx/$ry) 4  Zombies, Feld leer");
 		if ($rx == -1 && $ry == -2) return img("images/map/dot_voll.gif","($rx/$ry) ?? Zombies, Feld REGENERIERT! GRABEN!");
-		if ($rx ==  1 && $ry == -2) return img("images/map/dot_voll.gif","($rx/$ry) ?? Zombies, Feld REGENERIERT! GRABEN!");
+		if ($rx ==  1 && $ry == -2) return img("images/map/dot_voll.gif","($rx/$ry) ?? Zombies, (Feld wird bis morgen ausgegraben)");
 		
-		if ($rx ==  0 && $ry == -3) return img("images/map/dot_voll.gif","($rx/$ry) 5  Zombies, (feld wird bis morgen ausgegraben)");
-		if ($rx ==  1 && $ry == -3) return img("images/map/dot_voll.gif","($rx/$ry) ?? Zombies, (feld wird bis morgen ausgegraben)");
+		if ($rx ==  0 && $ry == -3) return img("images/map/dot_leer.gif","($rx/$ry) 5  Zombies, Feld leer");
+		if ($rx ==  1 && $ry == -3) return img("images/map/dot_leer.gif","($rx/$ry) 4  Zombies, Feld leer");
 		if ($rx == -1 && $ry == -3) return img("images/map/dot_voll.gif","($rx/$ry) ?? Zombies, Feld REGENERIERT! GRABEN!");
+		if ($rx ==  2 && $ry == -3) return img("images/map/dot_leer.gif","($rx/$ry) ?? Zombies, Feld leer");
 		
+		if ($rx ==  1 && $ry == -4) return img("images/map/dot_voll.gif","($rx/$ry) 6  Zombies, (Feld wird bis morgen ausgegraben)");
 		if ($rx ==  0 && $ry == -4) return img("images/map/dot_voll.gif","($rx/$ry) ?? Zombies, Feld REGENERIERT! GRABEN!");
+		if ($rx ==  2 && $ry == -4) return img("images/map/dot_voll.gif","($rx/$ry) ?? Zombies, Feld REGENERIERT! GRABEN!");
+		
+		if ($rx ==  1 && $ry == -5) return img("images/map/dot_voll.gif","($rx/$ry) ?? Zombies, Feld REGENERIERT! GRABEN!");
 	}
 	return false;
 }
