@@ -11,8 +11,10 @@ function MyEscXML ($txt) {
 } // htmlentities
 function MyEsc ($txt) { return utf8_decode($txt); } // htmlentities
 function MyEscHTML ($txt) { return utf8_decode($txt); } // htmlentities
+function MyEscHTML2 ($txt) { return htmlentities(($txt)); } // htmlentities
 //~ function MyEsc ($txt) { return strtr($txt,array("Ã?"=>"ß","Ã¼"=>"ü","Ã¶"=>"ö")); } // htmlentities
-function img ($url,$title=false,$special="") { $title = $title?(MyEsc($title)):$title; return "<img $special src='$url' ".($title?("alt='$title' title='$title'"):"")."/>"; }
+// htmlspecialchars , htmlentities
+function img ($url,$title=false,$special="") { $title = $title?(utf8_decode(htmlentities($title))):false; return "<img $special src='$url' ".($title?("alt='$title' title='$title'"):"")."/>"; }
 function StripUml($txt) { return preg_replace('/[^a-zA-Z0-9]/','',$txt); }
 
 $gShowAvatars = false;
@@ -227,6 +229,23 @@ if (!$xmlstr) $xmlstr = file_get_contents($xmlurl);
 @$xml = simplexml_load_string(MyEscXML($xmlstr));
 
 
+/*
+if file_get_contents is too slow, try this
+$gWGETOptions = "";
+//~ $gWGETOptions = "--limit-rate=10k"; // -4 for ipv6 problems
+$gMyOutFilePath = "myout.htm";
+$gMyTempPath = "mytemp.".time().".htm";
+function MyDownToFile ($url,$outfile) {
+	global $gWgetOptions;
+	shell_exec("wget $gWGETOptions ".escapeshellarg($url)." -O ".escapeshellarg($outfile));
+}
+function MyDownAndReadHTML ($url) {
+	global $gMyTempPath;
+	MyDownToFile($url,$gMyTempPath);
+	return file_get_contents($gMyTempPath);
+}
+*/
+
 if (!$xml->data[0]->city[0]["city"] || $xml->status[0]["open"] == "0") {
 	echo "<h1>Webseite down, Zombie-Angriff im Gange!</h1>\n";
 	echo "(lade dummy/demo daten)<br>\n";
@@ -239,21 +258,49 @@ if (!$xml->data[0]->city[0]["city"] || $xml->status[0]["open"] == "0") {
 //~ $_SESSION["xml"] = $xml;
 
 function Map ($x,$y) { global $gMap; return isset($gMap["$x,$y"])?$gMap["$x,$y"]:false; }
-	
+
+function GetDeathTypeIconHTML ($dtype,$txt="") { 
+	switch ($dtype) {
+		case kDeathType_Aussenwelt:	return img(kIconURL_aussenwelt	,"Aussenwelt. ".$txt); break;
+		case kDeathType_Infektion:	return img(kIconURL_infektion	,"Infektion. ".$txt); break;
+		case kDeathType_Dehydriert:	return img(kIconURL_dehydration	,"Dehydriert. ".$txt); break;
+	}
+	return img(kIconURL_death,"Unbekannt[".intval($dtype)."]. ".$txt);
+}
 function MyLoadGlobals () {
-	global $xml,$icon_url,$icon_url_item,$avatar_url,$city,$icon_url_zombie,$icon_url_attack_in,$icon_url_death,$icon_url_def,$def,$gGameDay,$gGameID,$gCityX,$gCityY;
+	global $xml,$icon_url,$icon_url_item,$avatar_url,$city;
+	global $def,$gGameDay,$gGameID,$gCityX,$gCityY;
 	global $gCitizens,$buerger_draussen,$buerger_alive;
 
 	$icon_url			= $xml->headers[0]["iconurl"];
 	$icon_url_item		= $xml->headers[0]["iconurl"]."item_";
 	$avatar_url			= $xml->headers[0]["avatarurl"];
 	$city				= $xml->data[0]->city[0];
-	$icon_url_zombie	= "http://www.dieverdammten.de/gfx/forum/smiley/h_zombie.gif";
-	//~ $icon_url_attack_in	= "http://data.dieverdammten.de/gfx/forum/smiley/h_zhead.gif";
-	$icon_url_attack_in	= $icon_url."small_death.gif";
-	$icon_url_death		= $icon_url."small_death.gif";
-	$icon_url_def		= $icon_url."item_shield.gif";
-
+	//~ kIconURL_attackin	= "http://data.dieverdammten.de/gfx/forum/smiley/h_zhead.gif";
+	
+	define("kIconURL_zombie"		,"http://www.dieverdammten.de/gfx/forum/smiley/h_zombie.gif");
+	define("kIconURL_attackin"		,$icon_url."small_death.gif");
+	define("kIconURL_def"			,$icon_url."item_shield.gif");
+	
+	define("kIconURL_msg"			,"http://data.dieverdammten.de/gfx/forum/smiley/h_chat.gif");
+	define("kIconURL_death"			, $icon_url."small_death.gif");
+	define("kIconURL_warning"		, $icon_url."small_warning.gif");
+	define("kIconURL_nonhero"		, $icon_url."item_basic_suit.gif");
+	define("kIconURL_hero"			, $icon_url."small_hero.gif");
+	define("kIconURL_hero_dig"		, $icon_url."item_pelle.gif");
+	define("kIconURL_hero_scout"	, $icon_url."item_vest_on.gif");
+	define("kIconURL_hero_def"		, $icon_url."item_shield.gif");
+	define("kIconURL_wachturm"		, $icon_url."item_tagger.gif");
+	define("kIconURL_statistic"		, $icon_url."item_electro.gif");
+	
+	define("kIconURL_aussenwelt"	, $icon_url."r_doutsd.gif");
+	define("kIconURL_infektion"		, $icon_url."r_dinfec.gif");
+	define("kIconURL_dehydration"	, $icon_url."r_dwater.gif");
+	
+	define("kDeathType_Aussenwelt",5);
+	define("kDeathType_Infektion",8);
+	define("kDeathType_Dehydriert",1);
+	
 	$def = (int)($city->defense[0]["total"]);
 	$gGameDay = (int)$xml->headers[0]->game[0]["days"];
 	$gGameID = (int)$xml->headers[0]->game[0]["id"];
@@ -320,13 +367,16 @@ $e = $xml->data[0]->estimations[0]->e[0];
 $zombie_min = (int)($e["min"]);
 $zombie_max = (int)($e["max"]);
 $bEstMax = ($e["maxed"]!="0"); // schon maximale qualität ?
+$estimate_bad_html = img(kIconURL_warning,("ungenau, Hilf mit die Schätzung im Wachturm zu verbessern!"));
 echo "<table>";
-echo "<tr><td>Schätzung".($bEstMax?"(gut)":"(<b>schlecht</b>)").":</td><td>".img($icon_url_zombie,"Zombies")."$zombie_min-$zombie_max</td><td>-&gt; ".img($icon_url_def,"def")."$def</td><td>-&gt; ".img($icon_url_attack_in,"tote")."".max(0,$zombie_min-$def)."-".max(0,$zombie_max-$def)."</td></tr>\n";
+
+	
+echo "<tr><td>".img(kIconURL_wachturm,("Schätzung")).($bEstMax?"":$estimate_bad_html)."</td><td>".img(kIconURL_zombie,"Zombies")."$zombie_min-$zombie_max</td><td>-&gt; ".img(kIconURL_def,"def")."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_min-$def)."-".max(0,$zombie_max-$def)."</td></tr>\n";
 $stat = array(0,24,50,97,149,215,294,387,489,595,709,831,935,1057,1190,1354,1548,1738,1926,2140,2353,2618,2892,3189,3506,3882,3952,4393,4841,5339,5772,6271,6880,7194,7736,8285,8728,9106,9671,9888,10666,11508,11705,12608,12139,12921,15248,11666);
 $zombie_av = isset($stat[$gGameDay]) ? $stat[$gGameDay] : false;
 $zombie_av2 = isset($stat[$gGameDay+1]) ? $stat[$gGameDay+1] : false;
-if ($zombie_av) echo "<tr><td>Statistik:</td><td>".img($icon_url_zombie,"Zombies")."$zombie_av</td><td>-&gt; ".img($icon_url_def,"def")."$def</td><td>-&gt; ".img($icon_url_attack_in,"tote")."".max(0,$zombie_av-$def)."</td></tr>\n";
-if ($zombie_av2) echo "<tr><td>Statistik für morgen:</td><td>".img($icon_url_zombie,"Zombies")."$zombie_av2</td><td>-&gt; ".img($icon_url_def,"def")."$def</td><td>-&gt; ".img($icon_url_attack_in,"tote")."".max(0,$zombie_av2-$def)."</td></tr>\n";
+if ($zombie_av) echo "<tr><td>".img(kIconURL_statistic,("Statistik"))."</td><td>".img(kIconURL_zombie,"Zombies")."$zombie_av</td><td>-&gt; ".img(kIconURL_def,"def")."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_av-$def)."</td></tr>\n";
+if ($zombie_av2) echo "<tr><td>".img(kIconURL_statistic,("Statistik für Morgen"))."+1</td><td>".img(kIconURL_zombie,"Zombies")."$zombie_av2</td><td>-&gt; ".img(kIconURL_def,"def")."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_av2-$def)."</td></tr>\n";
 echo "</table>";
 function GetSoulPoint ($days) { $c=0; for ($i=1;$i<=$days;++$i) $c += $i; return $c; }
 echo "SeelenPunkte: ".GetSoulPoint($gGameDay-1)." für Tod VOR Zombieangriff<br>\n";
@@ -334,7 +384,7 @@ echo "SeelenPunkte: ".GetSoulPoint($gGameDay)."(+".($gGameDay).") für Tod beim Z
 echo "SeelenPunkte: ".GetSoulPoint($gGameDay+1)."(+".($gGameDay+1).") für Tod beim morgigen Zombieangriff oder übermorgen<br>\n";
 
 $def_graben_delta = array(20,13,21,32,33,51,0);
-echo LinkBuilding("Grosser Graben")." verbessern/bauen:+".$def_graben_delta[GetBuildingLevel("Großer Graben")+1].img($icon_url_def,"def")."<br>\n";
+echo LinkBuilding("Grosser Graben")." verbessern/bauen:+".$def_graben_delta[GetBuildingLevel("Großer Graben")+1].img(kIconURL_def,"def")."<br>\n";
 if (!$bEstMax) echo "<b>Hilf mit die Schätzung im ".LinkBuilding("Wachturm")." zu verbessern!</b><br>\n";
 
 function CheckBuilding ($bname,$minlevel,$text,$pre="den/die") { 
@@ -395,6 +445,11 @@ $gDefIcon = array();
 $gDefIcon[1] = $icon_url."upgrade_tent.gif";
 $gDefIcon[3] = $icon_url."upgrade_house1.gif";
 
+function GetHeldenBerufHTML ($job) {
+	if ($job == "eclair") return img(kIconURL_hero_scout,"Aufklärer, kann Zombie-Anzahl in umliegenden Feldern schätzen und mit Glück durchschleichen");
+	if ($job == "collec") return img(kIconURL_hero_dig,"Buddler, kann sehen ob umliegende Felder leer sind und alle 90 minuten graben");
+	return $job;
+}
 
 // job="collec" job="basic"
 echo "<table border=1 cellpadding=0 cellspacing=0>\n";
@@ -405,13 +460,24 @@ foreach ($xml->data[0]->citizens[0]->citizen as $citizen) {
 	$bIsHome = ($x == $gCityX && $y == $gCityY);
 	$bHeld = $citizen["hero"] != "0";
 	$basedef = (int)$citizen["baseDef"];
+	$bHeld = $citizen["hero"]!=0;
+	$bBan = $citizen["ban"]!=0;
+	$bBarackenBauer = ($gGameDay==1 && $basedef > 1);
 	echo "<tr>";
 	if ($gShowAvatars) echo "<td>".img($avatar_url.$citizen["avatar"],null,"style='width:90px; height:30px;'")."</td>";
 	echo "<td>".MyEscHTML($citizen["name"])."</td>";
-	echo "<td>".$basedef.($bHeld?"+2":"").img($icon_url_def).(isset($gDefIcon[$basedef])?img($gDefIcon[$basedef]):"").(($gGameDay==1 && $basedef > 1)?"<b>VERSCHWENDER!</b>":"")."</td>";
+	echo "<td>".($bHeld?(img(kIconURL_hero,"Held").GetHeldenBerufHTML($citizen["job"])):img(kIconURL_nonhero))."</td>";
+	echo "<td>".($bBan?img(kIconURL_warning,"!VERBANNT!"):"")."</td>";
+	echo "<td>".$basedef.($bHeld?"+2":"").img(kIconURL_def).(isset($gDefIcon[$basedef])?img($gDefIcon[$basedef]):"").($bBarackenBauer?"<b>BARACKENBAUER!</b>":"")."</td>";
 	echo "<td ".($bIsHome?"":"bgcolor=orange").">".($bIsHome?(img("images/map/city.gif")):("$rx,$ry"))."</td>";
 	echo "</tr>\n";
-	
+	/*
+	kIconURL_nonhero	= $icon_url."item_basic_suit.gif";
+	kIconURL_hero		= $icon_url."small_hero.gif";
+	kIconURL_hero_dig	= $icon_url."item_pelle.gif";
+	kIconURL_hero_scout	= $icon_url."item_vest_on.gif";
+	kIconURL_hero_def	= $icon_url."item_shield.gif";
+	*/
 	// normalo http://data.dieverdammten.de/gfx/icons/item_basic_suit.gif
 	// hero http://data.dieverdammten.de/gfx/icons/small_hero.gif
 	// buddler http://data.dieverdammten.de/gfx/icons/item_pelle.gif
@@ -428,29 +494,50 @@ echo "</table>\n";
 echo "</td><td valign=top>\n";
 
 
+
+
+
+// ***** ***** ***** ***** ***** Expeditionen
+
+echo href("http://nobbz.de/wiki/index.php/Strategien_f%C3%BCr_Expeditionen","Expeditionen")."<br>\n";
+$c = 0;
+foreach ($xml->data[0]->expeditions[0]->expedition as $exp) {
+	echo $exp["name"]." von ".$exp["author"]."<br>";
+	++$c;
+}
+if ($c < 3) {
+	
+}
+//~ $exp = 
+//~ <expeditions>
+//~ <expedition name="test [74PA]" author="ghoulsblade" length="74" authorId="9720">
+//~ <point x="4" y="4"/>
+
+
+
+
 // ***** ***** ***** ***** ***** TOTE
+echo "<br>\n";
 echo "<table border=1 cellpadding=0 cellspacing=0>\n";
-$icon_msg_url = "http://data.dieverdammten.de/gfx/forum/smiley/h_chat.gif";
-$icon_warning_url = "http://data.dieverdammten.de/gfx/icons/small_warning.gif";
 $arr = array();
 foreach ($xml->data[0]->cadavers[0]->cadaver as $cadaver) $arr[] = $cadaver;
 function cmp_cadaver ($a,$b) { $a = (int)$a["day"]; $b = (int)$b["day"]; if ($a == $b) return 0; return ($a > $b) ? -1 : 1; }
 usort($arr,"cmp_cadaver");
 foreach ($arr as $cadaver) {
 	$msg = $cadaver->msg;
+	$cleanup = $cadaver->cleanup[0];
+	$dtype = $cadaver["dtype"]; //~ dtype="Int (death reason)"  5=kDeathType_Aussenwelt=aussenwelt
+	$cleanuptype = $cleanup["dtype"]; //~ dtype="Int (death reason)" <cleanup type="String (possible values : {garbage, water})" user="String"/>
+	
 	
 	// <cadaver name="Aerox" dtype="1" id="11174" day="4">
 	echo "<tr>";
-	$cleanup = $cadaver->cleanup[0];
-	$cleanup_txt = ($cleanup["user"] != "")?("entsorgt von ".htmlspecialchars($cleanup["user"])." : ".$cleanup["type"]):"";
-	if ($cadaver["day"] == $gGameDay-1) {
-		if ($cleanup && $cleanup["user"] != "") 
-				echo "<td>".img($icon_url_death,$cleanup_txt)."</td>";
-		else	echo "<td>".img($icon_warning_url,"LEICHE ENTSORGEN! SONST STEHT SIE ALS ZOMBIE WIEDER AUF!")."</td>";
-	} else {
-		echo "<td>".img($icon_url_death,$cleanup_txt)."</td>";
-	}
-	echo "<td>".(($msg && $msg != "")?img($icon_msg_url,htmlspecialchars($msg)):"")."</td>";
+	$bAussenWelt = $dtype == kDeathType_Aussenwelt;
+	$bMussEntsorgtWerden = ($cadaver["day"] == $gGameDay-1) && !$bAussenWelt && !($cleanup && $cleanup["user"] != "");
+	$cleanup_txt = ($cleanup["user"] != "")?("entsorgt von ".htmlspecialchars($cleanup["user"])." : ".$cleanup["type"]):false;
+	
+	echo "<td>".GetDeathTypeIconHTML($dtype,$cleanup_txt?$cleanup_txt:"").($bMussEntsorgtWerden?img(kIconURL_warning,"LEICHE ENTSORGEN! SONST STEHT SIE ALS ZOMBIE WIEDER AUF!"):"")."</td>";
+	echo "<td>".(($msg && $msg != "")?img(kIconURL_msg,$msg):"")."</td>";
 	echo "<td>".MyEscHTML($cadaver["name"])."</td>";
 	echo "<td>Tag".$cadaver["day"]."</td>";
 	echo "</tr>\n";
@@ -463,19 +550,21 @@ echo "</td><td valign=top>\n";
 
 
 
-// ***** ***** ***** ***** ***** GEBÄUDE
-echo href("http://nobbz.de/wiki/index.php/Geb%C3%A4ude_%C3%9Cbersicht","Gebäude").":<br>\n";
-foreach ($xml->data[0]->city[0]->building as $building) {
-	echo img($icon_url.$building["img"].".gif").LinkBuilding($building["name"])."<br>\n";
-}
 // ***** ***** ***** ***** ***** upgrades
 
-echo "<br>\n";
 echo href("http://nobbz.de/wiki/index.php/Verbesserung_des_Tages","Verbesserungen:").":<br>\n";
 $icon_upgrade_url = "http://data.dieverdammten.de/gfx/icons/item_electro.gif";
 foreach ($xml->data[0]->upgrades[0]->up as $upgrade) {
 	echo img($icon_upgrade_url,"Verbesserung").$upgrade["level"]." ".LinkBuilding($upgrade["name"])."<br>\n"; // $upgrade["buildingId"]
 }
+
+echo "<br>\n";
+// ***** ***** ***** ***** ***** GEBÄUDE
+echo href("http://nobbz.de/wiki/index.php/Geb%C3%A4ude_%C3%9Cbersicht","Gebäude").":<br>\n";
+foreach ($xml->data[0]->city[0]->building as $building) {
+	echo img($icon_url.$building["img"].".gif").LinkBuilding($building["name"])."<br>\n";
+}
+
 
 echo "</td><td valign=top>\n";
 
@@ -503,7 +592,7 @@ $gCatTrans = array("Rsc"=>"Rohst.",
 	"Armor"=>href("http://nobbz.de/wiki/index.php/Kategorie:Verteidigungsgegenstand","Verteid."),
 	"Food"=>"Vorrat",
 	"Weapon"=>href("http://nobbz.de/wiki/index.php/Waffen","Waffen"),
-	"Misc"=>"Versch.");
+	"Misc"=>href("http://nobbz.de/wiki/index.php/Liste_mit_Gegenst%C3%A4nden","Versch."));
 $cats2 = array();
 foreach ($gCatTrans as $k => $v) $cats2[$k] = isset($cats[$k])?$cats[$k]:array();
 foreach ($cats as $k => $v) if (!isset($gCatTrans[$k])) $cats2[$k] = $v;
@@ -640,12 +729,12 @@ echo "</span>\n";
 
 
 
-echo img("images/map/zone.gif")		.img($icon_url_zombie)."0, alleine ok"."<br>\n";
-echo img("images/map/zone_d1.gif")	.img($icon_url_zombie)."1-2, alleine ok"."<br>\n";
-echo img("images/map/zone_d2.gif")	.img($icon_url_zombie)."2-4, mindestens zu zweit hin!"."<br>\n";
-echo img("images/map/zone_d3.gif")	.img($icon_url_zombie)."5+, mindestens zu dritt hin!"."<br>\n";
-echo img("images/map/zone_bg.gif")	.img($icon_url_zombie)."0-99, mindestens zu dritt hin! unerforscht, hier könnte noch eine ruine sein"."<br>\n";
-echo img("images/map/zone_nv.gif")	.img($icon_url_zombie)."0-99, mindestens zu dritt hin! schon erforscht, aber HEUTE war noch niemand hier"."<br>\n";
+echo img("images/map/zone.gif")		.img(kIconURL_zombie)."0, alleine ok"."<br>\n";
+echo img("images/map/zone_d1.gif")	.img(kIconURL_zombie)."1-2, alleine ok"."<br>\n";
+echo img("images/map/zone_d2.gif")	.img(kIconURL_zombie)."2-4, mindestens zu zweit hin!"."<br>\n";
+echo img("images/map/zone_d3.gif")	.img(kIconURL_zombie)."5+, mindestens zu dritt hin!"."<br>\n";
+echo img("images/map/zone_bg.gif")	.img(kIconURL_zombie)."0-99, mindestens zu dritt hin! unerforscht, hier könnte noch eine ruine sein"."<br>\n";
+echo img("images/map/zone_nv.gif")	.img(kIconURL_zombie)."0-99, mindestens zu dritt hin! schon erforscht, aber HEUTE war noch niemand hier"."<br>\n";
 echo img(TagIconURL(5))."als leer markiert, wenn sich die Zone nicht inzwischen regeneriert hat (ForschungsTurm!)<br> findet man hier nur noch ".
 img($icon_url_item."wood_bad.gif","BaumStumpf")." und ".
 img($icon_url_item."metal_bad.gif","MetallTr&uuml;mmer")."<br>\n";
