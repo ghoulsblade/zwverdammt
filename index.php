@@ -42,15 +42,38 @@ if (isset($_REQUEST["ajax"])) {
 	if (!$xmlstr) exit("failed to load xml");
 	$xml = simplexml_load_string(MyEscXML($xmlstr));
 	MyLoadGlobals();
-	$rx = intval($_REQUEST["x"]);
-	$ry = intval($_REQUEST["y"]);
-	$x = $gCityX + $rx;
-	$y = $gCityY - $ry;
-	AddMapNote($rx,$ry,intval($_REQUEST["icon"]),-1,$_REQUEST["msg"]);
-	echo MapGetSpecial($x,$y);
+	switch ($_REQUEST["ajax"]) {
+		case "addmapnote":	Ajax_AddMapNote(); break;
+		case "cellinfo":	Ajax_MapCellInfo(); break;
+		default:			echo "unknown request ".$_REQUEST["ajax"]; break;
+	}
 	exit();
 }
 
+function Ajax_AddMapNote () {
+	$rx = intval($_REQUEST["x"]);
+	$ry = intval($_REQUEST["y"]);
+	$x = kCityX + $rx;
+	$y = kCityY - $ry;
+	AddMapNote($rx,$ry,intval($_REQUEST["icon"]),-1,$_REQUEST["msg"]);
+	echo MapGetSpecial($x,$y);
+}
+
+function Ajax_MapCellInfo () { // idMapCellInfo
+	$rx = intval($_REQUEST["x"]);
+	$ry = intval($_REQUEST["y"]);
+	?>
+	<form action="?" method="post" class='mapadd' id='form_mapadd_1'>
+		<input class='mapaddsmall_input' type="text" size="1" maxlength="3" name="x" value=<?=$rx?>>/
+		<input class='mapaddsmall_input' type="text" size="1" maxlength="3" name="y" value=<?=$ry?>>
+		<span class='bframe'><input type="radio" name="icon" value="-1" selected></span>
+		<span class='bframe'><input type="radio" name="icon" value="1"><?=img("images/map/dot8_voll.gif")?></span>
+		<span class='bframe'><input type="radio" name="icon" value="0"><?=img("images/map/dot8_leer.gif")?></span>
+		<input class='mapaddsmall_input' type="text" size="60" name="msg">
+		<input class='mapaddsmall_button' type="button" name="BLA" value="ok" onclick="AddMapNote_Form(this.form)">
+	</form>
+	<?php
+}
 
 
 
@@ -79,8 +102,10 @@ font-size:8pt;
 align:center;
 width:450px;
 }
+.broken { border:1px solid red; }
 .map td {
 	width: 21px; height: 21px;
+	min-width: 21px; min-height: 21px;
 	background-repeat:no-repeat;
 	margin: 0px;
 	padding: 0px;
@@ -90,6 +115,9 @@ width:450px;
 	//padding: 0px;
 	//~ width: 18px; height: 18px;
 //}
+.map {	
+	display:inline;
+}
 .bframe {
 	border:1px solid black;
 }
@@ -126,30 +154,30 @@ function RadioValue(rObj,vDefault) {
 }
 
 
-function AddMapNote_Form (form) {
-	var x = form.x.value;
-	var y = form.y.value;
-	var sQuery = "?ajax=addmapnote&reply=map&x="+escape(""+x)+"&y="+escape(""+y)+"&icon="+RadioValue(form.icon,-1)+"&msg="+escape(form.msg.value);
-	/*
-	var myAjax = new Ajax.Request(
-	  query, 
-	  { method: 'get', onComplete: UpdateMapHTML }
-	);
-	*/
-	
+function MyAjaxGet (sQuery,sTargetID) {
 	if (window.XMLHttpRequest) 
 			xmlhttp=new XMLHttpRequest(); // code for IE7+, Firefox, Chrome, Opera, Safari
 	else	xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");	// code for IE6, IE5
 	xmlhttp.onreadystatechange = function() {
 		if (xmlhttp.readyState==4 && xmlhttp.status==200) {
-			//~ document.getElementById("idMapContainer").innerHTML = xmlhttp.responseText; 
-			document.getElementById("map_"+x+"_"+y).innerHTML = xmlhttp.responseText;
+			document.getElementById(sTargetID).innerHTML = xmlhttp.responseText;
 		}
 	}
 	xmlhttp.open("GET",sQuery,true);
 	xmlhttp.send();
 }
 
+function AddMapNote_Form (form) {
+	var x = form.x.value;
+	var y = form.y.value;
+	var sQuery = "?ajax=addmapnote&x="+escape(""+x)+"&y="+escape(""+y)+"&icon="+RadioValue(form.icon,-1)+"&msg="+escape(form.msg.value);
+	MyAjaxGet(sQuery,"map_"+x+"_"+y); // whole map would be idMapContainer
+}
+
+function MapClickCell (x,y) {
+	//~ alert("ClickCell"+x+","+y);
+	MyAjaxGet("?ajax=cellinfo&x="+escape(x)+"&y="+escape(y),"idMapCellInfo");
+}
 
 </script>
 <noscript>
@@ -271,7 +299,7 @@ function GetDeathTypeIconHTML ($dtype,$txt="") {
 }
 function MyLoadGlobals () {
 	global $xml,$icon_url,$icon_url_item,$avatar_url,$city;
-	global $def,$gGameDay,$gGameID,$gCityX,$gCityY;
+	global $def,$gGameDay,$gGameID;
 	global $gCitizens,$buerger_draussen,$buerger_alive;
 
 	$icon_url			= $xml->headers[0]["iconurl"];
@@ -307,15 +335,15 @@ function MyLoadGlobals () {
 	$gGameDay = (int)$xml->headers[0]->game[0]["days"];
 	$gGameID = (int)$xml->headers[0]->game[0]["id"];
 
-	$gCityX = $xml->data[0]->city["x"];
-	$gCityY = $xml->data[0]->city["y"];
+	define("kCityX",$xml->data[0]->city["x"]);
+	define("kCityY",$xml->data[0]->city["y"]);
 
 	$buerger_draussen = 0;
 	$buerger_alive = 0;
 	$gCitizens = $xml->data[0]->citizens[0]->citizen;
 	foreach ($gCitizens as $citizen) { 
 		if ($citizen["dead"] == "0") ++$buerger_alive;
-		if ((int)$citizen["x"] == $gCityX && (int)$citizen["y"] == $gCityY) {} else { ++$buerger_draussen; }
+		if ((int)$citizen["x"] == kCityX && (int)$citizen["y"] == kCityY) {} else { ++$buerger_draussen; }
 	}
 	
 	
@@ -466,9 +494,9 @@ function GetHeldenBerufHTML ($job) {
 echo "<table border=1 cellpadding=0 cellspacing=0>\n";
 foreach ($xml->data[0]->citizens[0]->citizen as $citizen) { 
 	if ($citizen["dead"] != "0") continue;
-	$x = (int)$citizen["x"]; $rx = $x - $gCityX;
-	$y = (int)$citizen["y"]; $ry = $gCityY - $y;
-	$bIsHome = ($x == $gCityX && $y == $gCityY);
+	$x = (int)$citizen["x"]; $rx = $x - kCityX;
+	$y = (int)$citizen["y"]; $ry = kCityY - $y;
+	$bIsHome = ($x == kCityX && $y == kCityY);
 	$bHeld = $citizen["hero"] != "0";
 	$basedef = (int)$citizen["baseDef"];
 	$bHeld = $citizen["hero"]!=0;
@@ -596,8 +624,7 @@ foreach ($xml->data[0]->bank[0]->item as $item) {
 	$c = (int)$item["count"];
 	$cat = (string)$item["cat"];
 	$bBroken = $item["broken"] != 0;
-	$html = (($c>1)?($c."x"):"").LinkItem($item["name"],img($icon_url_item.$item["img"].".gif",$item["name"]));
-	if ($bBroken) $html = "<span style='border:1px solid red'>".$html."</span>";
+	$html = (($c>1)?($c."x"):"").LinkItem($item["name"],img($icon_url_item.$item["img"].".gif",$item["name"],$bBroken?"class='broken'":""));
 	if (!isset($cats[$cat])) $cats[$cat] = array();
 	$cats[$cat][] = "<span style='white-space: nowrap;'>".$html."</span>";
 }
@@ -706,9 +733,9 @@ function GetZombieNumText ($x,$y) {
 }
 
 function MapGetSpecial ($x,$y) {
-	global $gCityX,$gCityY,$gGameID,$gGameDay;
-	$rx = $x-$gCityX;
-	$ry = $gCityY-$y;
+	global $gGameID,$gGameDay;
+	$rx = $x-kCityX;
+	$ry = kCityY-$y;
 	$o = GetMapNote($rx,$ry); if (!$o) return false;
 	$age = (int)$gGameDay - (int)$o->day;
 	$agetxt = ($age != 0) ? (($age > 1) ? "[vor $age Tagen] " : "[gestern] ") : "";
@@ -718,8 +745,9 @@ function MapGetSpecial ($x,$y) {
 	return false;
 }
 
-echo "<span class='map' id='idMapContainer'>\n";
-echo "<table border=0 cellspacing=0 cellpadding=0>\n";
+echo "<table border=0 cellspacing=0><tr><td valign=top>\n";
+//~ echo "<span class='map' id='idMapContainer'>\n";
+echo "<table class='map' border=0 cellspacing=0 cellpadding=0>\n";
 for ($y=0;$y<$h;++$y) {
 	echo "<tr>";
 	for ($x=0;$x<$w;++$x) {
@@ -736,37 +764,28 @@ for ($y=0;$y<$h;++$y) {
 			if ($data["danger"] >= 3) $bgimg = "zone_d3.gif";
 			if ($data["tag"]) $tagimg = img(TagIconURL($data["tag"]),GetMapToolTip($x,$y));
 		}
-		if ($x == $gCityX && $y == $gCityY) $bgimg = "city.gif";
+		if ($x == kCityX && $y == kCityY) $bgimg = "city.gif";
 		
 		$bgimg = "background='images/map/$bgimg'";
 		$special = MapGetSpecial($x,$y); // map_$x_$y
 		if ($special) $tagimg = $special;
 		//~ $tagimg = "";
 		
-		$rx = $x-$gCityX;
-		$ry = $gCityY-$y;
+		$rx = $x-kCityX;
+		$ry = kCityY-$y;
 		
 		$style = ""; // "bgcolor=green"
-		echo "<td $style $bgimg><span class='mapcell' id='map_".$rx."_".$ry."'>".trim($tagimg)."</span></td>";
+		echo "<td $style $bgimg onclick='MapClickCell($rx,$ry);'><span class='mapcell' id='map_".$rx."_".$ry."'>".trim($tagimg)."</span></td>";
 		//~ echo "<td width=16 height=16>".($data?("nvt=".$data["nvt"].",tag=".$data["tag"]):"")."</td>";
 		//~ echo "<td width=16 height=16>".($data?"x":"")."</td>";
 	}
 	echo "</tr>\n";
 }
 echo "</table>\n";
-echo "</span>\n";
-
-?>
-<form action="?" method="post" class='mapadd' id='form_mapadd_1'>
-	<input class='mapaddsmall_input' type="text" size="1" maxlength="3" name="x" value=0>/
-	<input class='mapaddsmall_input' type="text" size="1" maxlength="3" name="y" value=0>
-	<span class='bframe'><input type="radio" name="icon" value="-1" selected></span>
-	<span class='bframe'><input type="radio" name="icon" value="1"><?=img("images/map/dot8_voll.gif")?></span>
-	<span class='bframe'><input type="radio" name="icon" value="0"><?=img("images/map/dot8_leer.gif")?></span>
-	<input class='mapaddsmall_input' type="text" size="60" name="msg">
-	<input class='mapaddsmall_button' type="button" name="BLA" value="ok" onclick="AddMapNote_Form(this.form)">
-</form>
-<?php
+echo "</td><td valign=top align=left>\n";
+//~ echo "</span>\n";
+echo "<span id='idMapCellInfo'>auf die Karte clicken...</span>\n";
+echo "</td></tr></table>\n";
 
 
 
