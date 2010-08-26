@@ -113,6 +113,7 @@ width:400px;
 	// padding:0px;
 	margin:2px 0px 0px 0px; // top,bottom,left,right
 }
+a img { border:0px; }
 </style>
 </head>
 <body>
@@ -324,9 +325,8 @@ $stat = array(0,24,50,97,149,215,294,387,489,595,709,831,935,1057,1190,1354,1548
 $zombie_av = isset($stat[$gGameDay]) ? $stat[$gGameDay] : false;
 if ($zombie_av) echo "Statistik:".img($icon_url_zombie,"Zombies")."$zombie_av -&gt; ".img($icon_url_def,"def")."$def -&gt; ".img($icon_url_attack_in,"tote")."".max(0,$zombie_av-$def)."<br>\n";
 $def_graben_delta = array(20,13,21,32,33,51,0);
-echo "Großer Graben verbessern/bauen:+".$def_graben_delta[GetBuildingLevel("Großer Graben")+1].img($icon_url_def,"def")."<br>\n";
-if (!$bEstMax) echo "<b>Hilf mit die Schätzung im Wachturm zu verbessern!</b><br>\n";
-
+echo LinkBuilding("Grosser Graben")." verbessern/bauen:+".$def_graben_delta[GetBuildingLevel("Großer Graben")+1].img($icon_url_def,"def")."<br>\n";
+if (!$bEstMax) echo "<b>Hilf mit die Schätzung im ".LinkBuilding("Wachturm")." zu verbessern!</b><br>\n";
 
 function CheckBuilding ($bname,$minlevel,$text,$pre="den/die") { 
 	if (GetBuildingLevel($bname) < 0) { echo "Hilf mit ".$pre." <b>$bname</b> zu bauen: ".$text."<br>\n"; return false; }
@@ -339,6 +339,18 @@ if (CheckBuilding("Werkstatt",0,"wird benötigt um BaumStümpfe, MetallTrümmer und
 }
 if ($gGameDay == 1) { echo ("bau dein Feldbett zu einem Zelt aus, aber NICHT zu einer Baracke, Holzbretter werden dringend für die Werkstatt benötigt")."<br>\n"; }
 
+function WikiName ($name) { return strtr((string)$name,array("ß"=>"ss"," "=>"_")); }
+
+// MyEscHTML
+function LinkWiki		($name,$html=false) { return href("http://nobbz.de/wiki/index.php/".urlencode(WikiName($name)),$html?$html:MyEscHTML($name)); }
+function LinkBuilding	($name,$html=false) { return LinkWiki($name,$html); }
+function LinkItem		($name,$html=false) { return LinkWiki($name,$html); }
+
+$f = GetBuildingLevel("Forschungsturm");
+$leer_regen = array(12,25,37,49,61,73,85,99,"??");
+$p0 = $leer_regen[$f+1];
+$p1 = $leer_regen[$f+2];
+echo LinkBuilding("Forschungsturm")." ".(($f >= 0)?"Stufe $f":"nicht gebaut")." -&gt; Chance das ein leeres Feld sich regeneriert : ".$p0."% (nächste:".$p1."%)<br>\n";
 
 
 /*
@@ -445,7 +457,7 @@ echo "</td><td valign=top>\n";
 // ***** ***** ***** ***** ***** GEBÄUDE
 echo href("http://nobbz.de/wiki/index.php/Geb%C3%A4ude_%C3%9Cbersicht","Gebäude").":<br>\n";
 foreach ($xml->data[0]->city[0]->building as $building) {
-	echo img($icon_url.$building["img"].".gif").MyEscHTML($building["name"])."<br>\n";
+	echo img($icon_url.$building["img"].".gif").LinkBuilding($building["name"])."<br>\n";
 }
 // ***** ***** ***** ***** ***** upgrades
 
@@ -453,7 +465,7 @@ echo "<br>\n";
 echo href("http://nobbz.de/wiki/index.php/Verbesserung_des_Tages","Verbesserungen:").":<br>\n";
 $icon_upgrade_url = "http://data.dieverdammten.de/gfx/icons/item_electro.gif";
 foreach ($xml->data[0]->upgrades[0]->up as $upgrade) {
-	echo img($icon_upgrade_url,"Verbesserung").$upgrade["level"]." ".MyEscHTML($upgrade["name"])."<br>\n"; // $upgrade["buildingId"]
+	echo img($icon_upgrade_url,"Verbesserung").$upgrade["level"]." ".LinkBuilding($upgrade["name"])."<br>\n"; // $upgrade["buildingId"]
 }
 
 echo "</td><td valign=top>\n";
@@ -468,7 +480,7 @@ foreach ($xml->data[0]->bank[0]->item as $item) {
 	$c = (int)$item["count"];
 	$cat = (string)$item["cat"];
 	$bBroken = $item["broken"] != 0;
-	$html = (($c>1)?($c."x"):"").img($icon_url_item.$item["img"].".gif",$item["name"]);
+	$html = (($c>1)?($c."x"):"").LinkItem($item["name"],img($icon_url_item.$item["img"].".gif",$item["name"]));
 	if ($bBroken) $html = "<span style='border:1px solid red'>".$html."</span>";
 	if (!isset($cats[$cat])) $cats[$cat] = array();
 	$cats[$cat][] = $html;
