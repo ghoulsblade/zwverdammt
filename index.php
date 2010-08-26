@@ -316,6 +316,13 @@ function MyLoadGlobals () {
 		if ((int)$citizen["x"] == $gCityX && (int)$citizen["y"] == $gCityY) {} else { ++$buerger_draussen; }
 	}
 	
+	global $gBuildingDone,$gUpgrades;
+	$gBuildingDone = array();
+	$gUpgrades = array();
+	foreach ($xml->data[0]->upgrades[0]->up as $upgrade) $gUpgrades[StripUml($upgrade["name"])] = (int)$upgrade["level"];
+	foreach ($xml->data[0]->city[0]->building as $building) $gBuildingDone[StripUml($building["name"])] = true;
+
+	
 	global $gMap,$w,$h;
 	$map = $xml->data[0]->map[0];
 	$w = $map["wid"];
@@ -328,7 +335,9 @@ function MyLoadGlobals () {
 	}
 	foreach ($map->zone as $zone) MapSet((int)$zone["x"],(int)$zone["y"],$zone);
 }
+
 MyLoadGlobals();
+
 
 if ($gStoreXML) {
 	$o = false;
@@ -341,18 +350,20 @@ if ($gStoreXML) {
 	sql("INSERT INTO xml SET ".obj2sql($o));
 }
 
-echo "Stadt=".$city["city"];
-echo " Tag=".$gGameDay;
-echo " ".img($icon_url."small_water.gif","Wasser").":".$city["water"];
-echo " &Uuml;berlebende=".$buerger_alive;
-echo " draussen=".$buerger_draussen;
-if ($gDemo) echo " <b>(demo/offline daten)</b>";
-echo "<br>\n";
 
-$gBuildingDone = array();
-$gUpgrades = array();
-foreach ($xml->data[0]->upgrades[0]->up as $upgrade) $gUpgrades[StripUml($upgrade["name"])] = (int)$upgrade["level"];
-foreach ($xml->data[0]->city[0]->building as $building) $gBuildingDone[StripUml($building["name"])] = true;
+
+// ***** ***** ***** ***** ***** hilfs-funktionen
+
+function CheckBuilding ($bname,$minlevel,$text,$pre="den/die") { 
+	if (GetBuildingLevel($bname) < 0) { echo "Hilf mit ".$pre." <b>$bname</b> zu bauen: ".$text."<br>\n"; return false; }
+	if (GetBuildingLevel($bname) < $minlevel) { echo "Hilf mit ".$pre." <b>$bname</b> als <b>Verbesserung des Tages</b> zu wählen: ".$text."<br>\n"; return false; }
+	return true;
+}
+function WikiName ($name) { return strtr((string)$name,array("ß"=>"ss"," "=>"_")); }
+function LinkWiki		($name,$html=false) { return href("http://nobbz.de/wiki/index.php/".urlencode(WikiName($name)),$html?$html:MyEscHTML($name)); }
+function LinkBuilding	($name,$html=false) { return LinkWiki($name,$html); }
+function LinkItem		($name,$html=false) { return LinkWiki($name,$html); }
+
 
 function GetBuildingLevel ($bname) { // -1= not build, 0=built but no upgrade, >1 = upgrade level 
 	global $gBuildingDone,$gUpgrades;
@@ -362,54 +373,10 @@ function GetBuildingLevel ($bname) { // -1= not build, 0=built but no upgrade, >
 	return $gUpgrades[$bname];
 }
 
-
-$e = $xml->data[0]->estimations[0]->e[0];
-$zombie_min = (int)($e["min"]);
-$zombie_max = (int)($e["max"]);
-$bEstMax = ($e["maxed"]!="0"); // schon maximale qualität ?
-$estimate_bad_html = img(kIconURL_warning,("ungenau, Hilf mit die Schätzung im Wachturm zu verbessern!"));
-echo "<table>";
-
-	
-echo "<tr><td>".img(kIconURL_wachturm,("Schätzung")).($bEstMax?"":$estimate_bad_html)."</td><td>".img(kIconURL_zombie,"Zombies")."$zombie_min-$zombie_max</td><td>-&gt; ".img(kIconURL_def,"def")."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_min-$def)."-".max(0,$zombie_max-$def)."</td></tr>\n";
-$stat = array(0,24,50,97,149,215,294,387,489,595,709,831,935,1057,1190,1354,1548,1738,1926,2140,2353,2618,2892,3189,3506,3882,3952,4393,4841,5339,5772,6271,6880,7194,7736,8285,8728,9106,9671,9888,10666,11508,11705,12608,12139,12921,15248,11666);
-$zombie_av = isset($stat[$gGameDay]) ? $stat[$gGameDay] : false;
-$zombie_av2 = isset($stat[$gGameDay+1]) ? $stat[$gGameDay+1] : false;
-if ($zombie_av) echo "<tr><td>".img(kIconURL_statistic,("Statistik"))."</td><td>".img(kIconURL_zombie,"Zombies")."$zombie_av</td><td>-&gt; ".img(kIconURL_def,"def")."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_av-$def)."</td></tr>\n";
-if ($zombie_av2) echo "<tr><td>".img(kIconURL_statistic,("Statistik für Morgen"))."+1</td><td>".img(kIconURL_zombie,"Zombies")."$zombie_av2</td><td>-&gt; ".img(kIconURL_def,"def")."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_av2-$def)."</td></tr>\n";
-echo "</table>";
 function GetSoulPoint ($days) { $c=0; for ($i=1;$i<=$days;++$i) $c += $i; return $c; }
-echo "SeelenPunkte: ".GetSoulPoint($gGameDay-1)." für Tod VOR Zombieangriff<br>\n";
-echo "SeelenPunkte: ".GetSoulPoint($gGameDay)."(+".($gGameDay).") für Tod beim Zombieangriff oder morgen<br>\n";
-echo "SeelenPunkte: ".GetSoulPoint($gGameDay+1)."(+".($gGameDay+1).") für Tod beim morgigen Zombieangriff oder übermorgen<br>\n";
 
-$def_graben_delta = array(20,13,21,32,33,51,0);
-echo LinkBuilding("Grosser Graben")." verbessern/bauen:+".$def_graben_delta[GetBuildingLevel("Großer Graben")+1].img(kIconURL_def,"def")."<br>\n";
-if (!$bEstMax) echo "<b>Hilf mit die Schätzung im ".LinkBuilding("Wachturm")." zu verbessern!</b><br>\n";
 
-function CheckBuilding ($bname,$minlevel,$text,$pre="den/die") { 
-	if (GetBuildingLevel($bname) < 0) { echo "Hilf mit ".$pre." <b>$bname</b> zu bauen: ".$text."<br>\n"; return false; }
-	if (GetBuildingLevel($bname) < $minlevel) { echo "Hilf mit ".$pre." <b>$bname</b> als <b>Verbesserung des Tages</b> zu wählen: ".$text."<br>\n"; return false; }
-	return true;
-}
-if (CheckBuilding("Werkstatt",0,"wird benötigt um BaumStümpfe, MetallTrümmer und viele andere Sachen umzuwandeln","die")) {
-	CheckBuilding("Wachturm",0,"wird benötigt um den Forschungsturm zu bauen","den");
-	CheckBuilding("Forschungsturm",2,"sorgt dafür dass sich leere Felder, auf denen man sonst nur BaumStümpfe und MetallTrümmer findet wieder regenerieren","den");
-}
-if ($gGameDay == 1) { echo ("bau dein Feldbett zu einem Zelt aus, aber NICHT zu einer Baracke, Holzbretter werden dringend für die Werkstatt benötigt")."<br>\n"; }
 
-function WikiName ($name) { return strtr((string)$name,array("ß"=>"ss"," "=>"_")); }
-
-// MyEscHTML
-function LinkWiki		($name,$html=false) { return href("http://nobbz.de/wiki/index.php/".urlencode(WikiName($name)),$html?$html:MyEscHTML($name)); }
-function LinkBuilding	($name,$html=false) { return LinkWiki($name,$html); }
-function LinkItem		($name,$html=false) { return LinkWiki($name,$html); }
-
-$f = GetBuildingLevel("Forschungsturm");
-$leer_regen = array(12,25,37,49,61,73,85,99,"??");
-$p0 = $leer_regen[$f+1];
-$p1 = $leer_regen[$f+2];
-echo LinkBuilding("Forschungsturm")." ".(($f >= 0)?"Stufe $f":"nicht gebaut")." -&gt; Chance das ein leeres Feld sich regeneriert : ".$p0."% (nächste:".$p1."%)<br>\n";
 
 
 /*
@@ -433,11 +400,50 @@ holle:	Ein paar Sandstürme wurden im Osten beobachtet.
 
 //~ echo "iconurl=$icon_url_item<br>\n";
 
-// ***** ***** ***** ***** ***** CITY TABLE START
+// ***** ***** ***** ***** ***** MAIN TABLE START
 
-echo "<table border=1><tr><td valign=top>\n";
+echo "<table border=1 cellspacing=0><tr><td valign=top>\n";
 
 
+
+// ***** ***** ***** ***** ***** STADT INFOS 
+
+echo "Stadt=".$city["city"];
+echo " Tag=".$gGameDay;
+echo " ".img($icon_url."small_water.gif","Wasser").":".$city["water"];
+echo " &Uuml;berlebende=".$buerger_alive;
+echo " draussen=".$buerger_draussen;
+if ($gDemo) echo " <b>(demo/offline daten)</b>";
+echo "<br>\n";
+
+
+
+
+
+echo "SeelenPunkte: ".GetSoulPoint($gGameDay-1)." für Tod VOR Zombieangriff<br>\n";
+echo "SeelenPunkte: ".GetSoulPoint($gGameDay)."(+".($gGameDay).") für Tod beim Zombieangriff oder morgen<br>\n";
+echo "SeelenPunkte: ".GetSoulPoint($gGameDay+1)."(+".($gGameDay+1).") für Tod beim morgigen Zombieangriff oder übermorgen<br>\n";
+
+$def_graben_delta = array(20,13,21,32,33,51,0);
+echo LinkBuilding("Grosser Graben")." verbessern/bauen:+".$def_graben_delta[GetBuildingLevel("Großer Graben")+1].img(kIconURL_def,"def")."<br>\n";
+if (!$bEstMax) echo "<b>Hilf mit die Schätzung im ".LinkBuilding("Wachturm")." zu verbessern!</b><br>\n";
+
+if (CheckBuilding("Werkstatt",0,"wird benötigt um BaumStümpfe, MetallTrümmer und viele andere Sachen umzuwandeln","die")) {
+	CheckBuilding("Wachturm",0,"wird benötigt um den Forschungsturm zu bauen","den");
+	CheckBuilding("Forschungsturm",2,"sorgt dafür dass sich leere Felder, auf denen man sonst nur BaumStümpfe und MetallTrümmer findet wieder regenerieren","den");
+}
+if ($gGameDay == 1) { echo ("bau dein Feldbett zu einem Zelt aus, aber NICHT zu einer Baracke, Holzbretter werden dringend für die Werkstatt benötigt")."<br>\n"; }
+
+
+$f = GetBuildingLevel("Forschungsturm");
+$leer_regen = array(12,25,37,49,61,73,85,99,"??");
+$p0 = $leer_regen[$f+1];
+$p1 = $leer_regen[$f+2];
+echo LinkBuilding("Forschungsturm")." ".(($f >= 0)?"Stufe $f":"nicht gebaut")." -&gt; Chance das ein leeres Feld sich regeneriert : ".$p0."% (nächste:".$p1."%)<br>\n";
+
+
+// ***** ***** ***** ***** ***** BÜRGER
+echo "<table border=1><tr><td valign=top>\n"; // sub table : (bürger, exp+tote, verbesser+gebäude)
 
 // ***** ***** ***** ***** ***** BÜRGER
 
@@ -466,9 +472,9 @@ foreach ($xml->data[0]->citizens[0]->citizen as $citizen) {
 	echo "<tr>";
 	if ($gShowAvatars) echo "<td>".img($avatar_url.$citizen["avatar"],null,"style='width:90px; height:30px;'")."</td>";
 	echo "<td>".MyEscHTML($citizen["name"])."</td>";
-	echo "<td>".($bHeld?(img(kIconURL_hero,"Held").GetHeldenBerufHTML($citizen["job"])):img(kIconURL_nonhero))."</td>";
+	echo "<td nowrap>".($bHeld?(img(kIconURL_hero,"Held").GetHeldenBerufHTML($citizen["job"])):img(kIconURL_nonhero))."</td>";
 	echo "<td>".($bBan?img(kIconURL_warning,"!VERBANNT!"):"")."</td>";
-	echo "<td>".$basedef.($bHeld?"+2":"").img(kIconURL_def).(isset($gDefIcon[$basedef])?img($gDefIcon[$basedef]):"").($bBarackenBauer?"<b>BARACKENBAUER!</b>":"")."</td>";
+	echo "<td nowrap>".$basedef.($bHeld?"+2":"").img(kIconURL_def).(isset($gDefIcon[$basedef])?img($gDefIcon[$basedef]):"").($bBarackenBauer?"<b>BARACKENBAUER!</b>":"")."</td>";
 	echo "<td ".($bIsHome?"":"bgcolor=orange").">".($bIsHome?(img("images/map/city.gif")):("$rx,$ry"))."</td>";
 	echo "</tr>\n";
 	/*
@@ -566,10 +572,17 @@ foreach ($xml->data[0]->city[0]->building as $building) {
 }
 
 
+
+echo "</td></tr></table>\n"; // END sub table : (bürger, exp+tote, verbesser+gebäude)
+
+
+
 echo "</td><td valign=top>\n";
 
 
 
+// layout table : links bank, rechts zombie-abschätzung
+echo "<table border=0 width='100%'><tr><td valign=top align=left>\n";
 
 // ***** ***** ***** ***** ***** BANK
 //~ echo "Bank:<br>";
@@ -581,7 +594,7 @@ foreach ($xml->data[0]->bank[0]->item as $item) {
 	$html = (($c>1)?($c."x"):"").LinkItem($item["name"],img($icon_url_item.$item["img"].".gif",$item["name"]));
 	if ($bBroken) $html = "<span style='border:1px solid red'>".$html."</span>";
 	if (!isset($cats[$cat])) $cats[$cat] = array();
-	$cats[$cat][] = $html;
+	$cats[$cat][] = "<span style='white-space: nowrap;'>".$html."</span>";
 }
 
 echo "<table border=0 cellspacing=0 cellpadding=1>\n";
@@ -596,10 +609,32 @@ $gCatTrans = array("Rsc"=>"Rohst.",
 $cats2 = array();
 foreach ($gCatTrans as $k => $v) $cats2[$k] = isset($cats[$k])?$cats[$k]:array();
 foreach ($cats as $k => $v) if (!isset($gCatTrans[$k])) $cats2[$k] = $v;
-foreach ($cats2 as $k => $arr) echo "<tr><th>".(isset($gCatTrans[$k])?$gCatTrans[$k]:$k).":</th><td align=right>".implode("</td><td align=right>",$arr)."</td></tr>\n";
+foreach ($cats2 as $k => $arr) echo "<tr><th>".(isset($gCatTrans[$k])?$gCatTrans[$k]:$k).":</th><td align=left>".implode(" &nbsp; ",$arr)."</td></tr>\n";
 echo "</table>\n";
 
-// TODO : KAPUTTE MARKIEREN!! broken=1 <item name="Großer trockener Stock" count="3" id="15" cat="Weapon" img="staff" broken="1"/>
+
+
+echo "</td><td valign=top align=right>\n"; // layout
+
+
+
+// ***** ***** ***** ***** ***** Zombie-Angriff
+$e = $xml->data[0]->estimations[0]->e[0];
+$zombie_min = (int)($e["min"]);
+$zombie_max = (int)($e["max"]);
+$bEstMax = ($e["maxed"]!="0"); // schon maximale qualität ?
+$estimate_bad_html = img(kIconURL_warning,("ungenau, Hilf mit die Schätzung im Wachturm zu verbessern!"));
+echo "<table>";
+echo "<tr><td>".img(kIconURL_wachturm,("Schätzung")).($bEstMax?"":$estimate_bad_html)."</td><td>".img(kIconURL_zombie,"Zombies")."$zombie_min-$zombie_max</td><td>-&gt; ".img(kIconURL_def,"def")."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_min-$def)."-".max(0,$zombie_max-$def)."</td></tr>\n";
+$stat = array(0,24,50,97,149,215,294,387,489,595,709,831,935,1057,1190,1354,1548,1738,1926,2140,2353,2618,2892,3189,3506,3882,3952,4393,4841,5339,5772,6271,6880,7194,7736,8285,8728,9106,9671,9888,10666,11508,11705,12608,12139,12921,15248,11666);
+$zombie_av = isset($stat[$gGameDay]) ? $stat[$gGameDay] : false;
+$zombie_av2 = isset($stat[$gGameDay+1]) ? $stat[$gGameDay+1] : false;
+if ($zombie_av) echo "<tr><td>".img(kIconURL_statistic,("Statistik"))."</td><td>".img(kIconURL_zombie,"Zombies")."$zombie_av</td><td>-&gt; ".img(kIconURL_def,"def")."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_av-$def)."</td></tr>\n";
+if ($zombie_av2) echo "<tr><td>".img(kIconURL_statistic,("Statistik für Morgen"))."+1</td><td>".img(kIconURL_zombie,"Zombies")."$zombie_av2</td><td>-&gt; ".img(kIconURL_def,"def")."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_av2-$def)."</td></tr>\n";
+echo "</table>";
+
+
+echo "</td></tr></table>\n";
 
 
 // ***** ***** ***** ***** ***** MAP
