@@ -13,6 +13,7 @@ function MyEsc ($txt) { return utf8_decode($txt); } // htmlentities
 function MyEscHTML ($txt) { return utf8_decode($txt); } // htmlentities
 //~ function MyEsc ($txt) { return strtr($txt,array("Ã?"=>"ß","Ã¼"=>"ü","Ã¶"=>"ö")); } // htmlentities
 function img ($url,$title=false,$special="") { $title = $title?(MyEsc($title)):$title; return "<img $special src='$url' ".($title?("alt='$title' title='$title'"):"")."/>"; }
+function StripUml($txt) { return preg_replace('/[^a-zA-Z0-9]/','',$txt); }
 
 $gShowAvatars = false;
 
@@ -30,7 +31,28 @@ if (isset($_REQUEST["LogOut"])) {
 	$gSeelenID = $_REQUEST["SeelenID"];
 }
 
-session_start(); // -> man kann $_SESSION benutzen
+//~ session_start(); // -> man kann $_SESSION benutzen
+
+function GetLatestXmlStrFromSeelenID ($seelenid) { return sqlgetone("SELECT xml FROM xml WHERE ".arr2sql(array("seelenid"=>$seelenid))." ORDER BY id DESC LIMIT 1"); }
+
+if (isset($_REQUEST["ajax"])) {
+	$xmlstr = GetLatestXmlStrFromSeelenID($gSeelenID);
+	if (!$xmlstr) exit("failed to load xml");
+	$xml = simplexml_load_string(MyEscXML($xmlstr));
+	MyLoadGlobals();
+	$rx = intval($_REQUEST["x"]);
+	$ry = intval($_REQUEST["y"]);
+	$x = $gCityX + $rx;
+	$y = $gCityY - $ry;
+	AddMapNote($rx,$ry,intval($_REQUEST["icon"]),-1,$_REQUEST["msg"]);
+	echo MapGetSpecial($x,$y);
+	exit();
+}
+
+
+
+
+
 
 
 function PrintFooter () { ?></body></html><?php }
@@ -94,6 +116,42 @@ width:400px;
 </style>
 </head>
 <body>
+<script type="text/javascript">
+function RadioValue(rObj,vDefault) {
+	for (var i=0; i<rObj.length; i++) if (rObj[i].checked) return rObj[i].value;
+	return vDefault;
+}
+
+
+function AddMapNote_Form (form) {
+	var x = form.x.value;
+	var y = form.y.value;
+	var sQuery = "?ajax=addmapnote&reply=map&x="+escape(""+x)+"&y="+escape(""+y)+"&icon="+RadioValue(form.icon,-1)+"&msg="+escape(form.msg.value);
+	/*
+	var myAjax = new Ajax.Request(
+	  query, 
+	  { method: 'get', onComplete: UpdateMapHTML }
+	);
+	*/
+	
+	if (window.XMLHttpRequest) 
+			xmlhttp=new XMLHttpRequest(); // code for IE7+, Firefox, Chrome, Opera, Safari
+	else	xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");	// code for IE6, IE5
+	xmlhttp.onreadystatechange = function() {
+		if (xmlhttp.readyState==4 && xmlhttp.status==200) {
+			//~ document.getElementById("idMapContainer").innerHTML = xmlhttp.responseText; 
+			document.getElementById("map_"+x+"_"+y).innerHTML = xmlhttp.responseText;
+		}
+	}
+	xmlhttp.open("GET",sQuery,true);
+	xmlhttp.send();
+}
+
+
+</script>
+<noscript>
+(!javascript needed!)
+</noscript>
 <?php
 
 
@@ -156,8 +214,15 @@ SeelenID_EntryForm();
 $gStoreXML = true;
 $gDemo = false;
 $xmlurl_sample = "sample.xml";
-if ($gUseSampleData) { $xmlurl = $xmlurl_sample; $gDemo = true; $gStoreXML = false; }
-$xmlstr = file_get_contents($xmlurl);
+$xmlstr = false;
+if ($gUseSampleData) { 
+	$xmlurl = $xmlurl_sample; 
+	$gDemo = true;
+	$gStoreXML = false;
+	$xmlstr = GetLatestXmlStrFromSeelenID(kMySQL_SampleSoulID);
+	//~ if ($xmlstr) echo "sample load from db OK<br>\n"; else echo "sample load from db failed<br>\n";
+}
+if (!$xmlstr) $xmlstr = file_get_contents($xmlurl);
 @$xml = simplexml_load_string(MyEscXML($xmlstr));
 
 
@@ -170,35 +235,52 @@ if (!$xml->data[0]->city[0]["city"] || $xml->status[0]["open"] == "0") {
 	$gStoreXML = false;
 }
 
-$icon_url			= $xml->headers[0]["iconurl"];
-$icon_url_item		= $xml->headers[0]["iconurl"]."item_";
-$avatar_url			= $xml->headers[0]["avatarurl"];
-$city				= $xml->data[0]->city[0];
-$icon_url_zombie	= "http://www.dieverdammten.de/gfx/forum/smiley/h_zombie.gif";
-//~ $icon_url_attack_in	= "http://data.dieverdammten.de/gfx/forum/smiley/h_zhead.gif";
-$icon_url_attack_in	= $icon_url."small_death.gif";
-$icon_url_death		= $icon_url."small_death.gif";
-$icon_url_def		= $icon_url."item_shield.gif";
+//~ $_SESSION["xml"] = $xml;
 
-$def = (int)($city->defense[0]["total"]);
-$day = (int)$xml->headers[0]->game[0]["days"];
-$gGameDay = $day;
-$gGameID = (int)$xml->headers[0]->game[0]["id"];
+function Map ($x,$y) { global $gMap; return isset($gMap["$x,$y"])?$gMap["$x,$y"]:false; }
+	
+function MyLoadGlobals () {
+	global $xml,$icon_url,$icon_url_item,$avatar_url,$city,$icon_url_zombie,$icon_url_attack_in,$icon_url_death,$icon_url_def,$def,$gGameDay,$gGameID,$gCityX,$gCityY;
+	global $gCitizens,$buerger_draussen,$buerger_alive;
 
-$cityx = $xml->data[0]->city["x"];
-$cityy = $xml->data[0]->city["y"];
-$gCityX = $cityx;
-$gCityY = $cityy;
+	$icon_url			= $xml->headers[0]["iconurl"];
+	$icon_url_item		= $xml->headers[0]["iconurl"]."item_";
+	$avatar_url			= $xml->headers[0]["avatarurl"];
+	$city				= $xml->data[0]->city[0];
+	$icon_url_zombie	= "http://www.dieverdammten.de/gfx/forum/smiley/h_zombie.gif";
+	//~ $icon_url_attack_in	= "http://data.dieverdammten.de/gfx/forum/smiley/h_zhead.gif";
+	$icon_url_attack_in	= $icon_url."small_death.gif";
+	$icon_url_death		= $icon_url."small_death.gif";
+	$icon_url_def		= $icon_url."item_shield.gif";
 
-$buerger_draussen = 0;
-$buerger_alive = 0;
-$gCitizens = $xml->data[0]->citizens[0]->citizen;
-foreach ($gCitizens as $citizen) { 
-	if ($citizen["dead"] == "0") ++$buerger_alive;
-	if ((int)$citizen["x"] == $cityx && (int)$citizen["y"] == $cityy) {} else { ++$buerger_draussen; }
+	$def = (int)($city->defense[0]["total"]);
+	$gGameDay = (int)$xml->headers[0]->game[0]["days"];
+	$gGameID = (int)$xml->headers[0]->game[0]["id"];
+
+	$gCityX = $xml->data[0]->city["x"];
+	$gCityY = $xml->data[0]->city["y"];
+
+	$buerger_draussen = 0;
+	$buerger_alive = 0;
+	$gCitizens = $xml->data[0]->citizens[0]->citizen;
+	foreach ($gCitizens as $citizen) { 
+		if ($citizen["dead"] == "0") ++$buerger_alive;
+		if ((int)$citizen["x"] == $gCityX && (int)$citizen["y"] == $gCityY) {} else { ++$buerger_draussen; }
+	}
+	
+	global $gMap,$w,$h;
+	$map = $xml->data[0]->map[0];
+	$w = $map["wid"];
+	$h = $map["hei"];
+	$gMap = array();
+	function MapSet ($x,$y,$data) { 
+		global $gMap;
+		$gMap["$x,$y"] = $data; 
+		//~ echo "MapSet($x,$y,nvt=".$data["nvt"].",tag=".$data["tag"].")<br>\n";
+	}
+	foreach ($map->zone as $zone) MapSet((int)$zone["x"],(int)$zone["y"],$zone);
 }
-
-
+MyLoadGlobals();
 
 if ($gStoreXML) {
 	$o = false;
@@ -206,18 +288,32 @@ if ($gStoreXML) {
 	$o->time = time();
 	$o->gameid = $gGameID;
 	$o->cityname = (string)$city["city"];
-	$o->day = (int)$day;
+	$o->day = (int)$gGameDay;
 	$o->xml = $xmlstr;
 	sql("INSERT INTO xml SET ".obj2sql($o));
 }
 
 echo "Stadt=".$city["city"];
-echo " Tag=".$day;
+echo " Tag=".$gGameDay;
 echo " ".img($icon_url."small_water.gif","Wasser").":".$city["water"];
 echo " &Uuml;berlebende=".$buerger_alive;
 echo " draussen=".$buerger_draussen;
 if ($gDemo) echo " <b>(demo/offline daten)</b>";
 echo "<br>\n";
+
+$gBuildingDone = array();
+$gUpgrades = array();
+foreach ($xml->data[0]->upgrades[0]->up as $upgrade) $gUpgrades[StripUml($upgrade["name"])] = (int)$upgrade["level"];
+foreach ($xml->data[0]->city[0]->building as $building) $gBuildingDone[StripUml($building["name"])] = true;
+
+function GetBuildingLevel ($bname) { // -1= not build, 0=built but no upgrade, >1 = upgrade level 
+	global $gBuildingDone,$gUpgrades;
+	$bname = StripUml($bname);
+	if (!isset($gBuildingDone[$bname])) return -1;
+	if (!isset($gUpgrades[$bname])) return 0;
+	return $gUpgrades[$bname];
+}
+
 
 $e = $xml->data[0]->estimations[0]->e[0];
 $zombie_min = (int)($e["min"]);
@@ -225,24 +321,12 @@ $zombie_max = (int)($e["max"]);
 $bEstMax = ($e["maxed"]!="0"); // schon maximale qualität ?
 echo "Schätzung".($bEstMax?"(gut)":"(<b>schlecht</b>)").":".img($icon_url_zombie,"Zombies")."$zombie_min-$zombie_max -&gt; ".img($icon_url_def,"def")."$def -&gt; ".img($icon_url_attack_in,"tote")."".max(0,$zombie_min-$def)."-".max(0,$zombie_max-$def)."<br>\n";
 $stat = array(0,24,50,97,149,215,294,387,489,595,709,831,935,1057,1190,1354,1548,1738,1926,2140,2353,2618,2892,3189,3506,3882,3952,4393,4841,5339,5772,6271,6880,7194,7736,8285,8728,9106,9671,9888,10666,11508,11705,12608,12139,12921,15248,11666);
-$zombie_av = isset($stat[$day]) ? $stat[$day] : false;
+$zombie_av = isset($stat[$gGameDay]) ? $stat[$gGameDay] : false;
 if ($zombie_av) echo "Statistik:".img($icon_url_zombie,"Zombies")."$zombie_av -&gt; ".img($icon_url_def,"def")."$def -&gt; ".img($icon_url_attack_in,"tote")."".max(0,$zombie_av-$def)."<br>\n";
 $def_graben_delta = array(20,13,21,32,33,51,0);
-//~ echo "Großer Graben verbessern/bauen:+".$def_graben_delta[GetBuildingLevel("Großer Graben")+1].img($icon_url_def,"def")."<br>\n";
+echo "Großer Graben verbessern/bauen:+".$def_graben_delta[GetBuildingLevel("Großer Graben")+1].img($icon_url_def,"def")."<br>\n";
 if (!$bEstMax) echo "<b>Hilf mit die Schätzung im Wachturm zu verbessern!</b><br>\n";
 
-$gBuildingDone = array();
-$gUpgrades = array();
-foreach ($xml->data[0]->upgrades[0]->up as $upgrade) $gUpgrades[MyEsc($upgrade["name"])] = (int)$upgrade["level"];
-foreach ($xml->data[0]->city[0]->building as $building) $gBuildingDone[MyEsc($building["name"])] = true;
-
-function GetBuildingLevel ($bname) { // -1= not build, 0=built but no upgrade, >1 = upgrade level 
-	global $gBuildingDone,$gUpgrades;
-	$bname = MyEsc($bname);
-	if (!isset($gBuildingDone[$bname])) return -1;
-	if (!isset($gUpgrades[$bname])) return 0;
-	return $gUpgrades[$bname];
-}
 
 function CheckBuilding ($bname,$minlevel,$text,$pre="den/die") { 
 	if (GetBuildingLevel($bname) < 0) { echo "Hilf mit ".$pre." <b>$bname</b> zu bauen: ".$text."<br>\n"; return false; }
@@ -259,6 +343,13 @@ if ($gGameDay == 1) { echo ("bau dein Feldbett zu einem Zelt aus, aber NICHT zu 
 
 /*
 Unseren Messungen zufolge gab es im Osten ein paar meteorologische Anomalien. 
+
+Der Nordosten wurde gestern von einem heftigen Unwetter heimgesucht. 
+holle:	Im Osten haben gestern ein paar heftige Sandstürme gewütet.
+holle:	Im Südosten wurden gestern ein paar meteorologische Anomalien gesichtet.
+holle:	Im Norden wurden gestern ein paar meteorologische Anomalien gesichtet.
+holle:	Ein paar Sandstürme wurden im Osten beobachtet. 
+
 */
 
 //~ <news z="232" def="233"><content>bla...</content></news>
@@ -288,15 +379,15 @@ $gDefIcon[3] = $icon_url."upgrade_house1.gif";
 echo "<table border=1 cellpadding=0 cellspacing=0>\n";
 foreach ($xml->data[0]->citizens[0]->citizen as $citizen) { 
 	if ($citizen["dead"] != "0") continue;
-	$x = (int)$citizen["x"]; $rx = $x - $cityx;
-	$y = (int)$citizen["y"]; $ry = $y - $cityy;
-	$bIsHome = ($x == $cityx && $y == $cityy);
+	$x = (int)$citizen["x"]; $rx = $x - $gCityX;
+	$y = (int)$citizen["y"]; $ry = $y - $gCityY;
+	$bIsHome = ($x == $gCityX && $y == $gCityY);
 	$bHeld = $citizen["hero"] != "0";
 	$basedef = (int)$citizen["baseDef"];
 	echo "<tr>";
 	if ($gShowAvatars) echo "<td>".img($avatar_url.$citizen["avatar"],null,"style='width:90px; height:30px;'")."</td>";
 	echo "<td>".MyEscHTML($citizen["name"])."</td>";
-	echo "<td>".$basedef.($bHeld?"+2":"").img($icon_url_def).(isset($gDefIcon[$basedef])?img($gDefIcon[$basedef]):"").(($day==1 && $basedef > 1)?"<b>VERSCHWENDER!</b>":"")."</td>";
+	echo "<td>".$basedef.($bHeld?"+2":"").img($icon_url_def).(isset($gDefIcon[$basedef])?img($gDefIcon[$basedef]):"").(($gGameDay==1 && $basedef > 1)?"<b>VERSCHWENDER!</b>":"")."</td>";
 	echo "<td ".($bIsHome?"":"bgcolor=orange").">".($bIsHome?(img("images/map/city.gif")):("$rx,$ry"))."</td>";
 	echo "</tr>\n";
 	
@@ -314,18 +405,6 @@ echo "</table>\n";
 
 
 echo "</td><td valign=top>\n";
-
-// ***** ***** ***** ***** ***** GEBÄUDE
-foreach ($xml->data[0]->city[0]->building as $building) {
-	echo img($icon_url.$building["img"].".gif").MyEscHTML($building["name"])."<br>\n";
-}
-// ***** ***** ***** ***** ***** upgrades
-
-echo "<br>\n";
-$icon_upgrade_url = "http://data.dieverdammten.de/gfx/icons/item_electro.gif";
-foreach ($xml->data[0]->upgrades[0]->up as $upgrade) {
-	echo img($icon_upgrade_url,"Verbesserung").$upgrade["level"]." ".MyEscHTML($upgrade["name"])."<br>\n"; // $upgrade["buildingId"]
-}
 
 
 // ***** ***** ***** ***** ***** TOTE
@@ -363,6 +442,23 @@ echo "</td><td valign=top>\n";
 
 
 
+// ***** ***** ***** ***** ***** GEBÄUDE
+foreach ($xml->data[0]->city[0]->building as $building) {
+	echo img($icon_url.$building["img"].".gif").MyEscHTML($building["name"])."<br>\n";
+}
+// ***** ***** ***** ***** ***** upgrades
+
+echo "<br>\n";
+$icon_upgrade_url = "http://data.dieverdammten.de/gfx/icons/item_electro.gif";
+foreach ($xml->data[0]->upgrades[0]->up as $upgrade) {
+	echo img($icon_upgrade_url,"Verbesserung").$upgrade["level"]." ".MyEscHTML($upgrade["name"])."<br>\n"; // $upgrade["buildingId"]
+}
+
+echo "</td><td valign=top>\n";
+
+
+
+
 // ***** ***** ***** ***** ***** BANK
 //~ echo "Bank:<br>";
 $cats = array();
@@ -390,17 +486,6 @@ echo "</table>\n";
 // ***** ***** ***** ***** ***** MAP
 
 
-$map = $xml->data[0]->map[0];
-$w = $map["wid"];
-$h = $map["hei"];
-$gMap = array();
-function MapSet ($x,$y,$data) { 
-	global $gMap;
-	$gMap["$x,$y"] = $data; 
-	//~ echo "MapSet($x,$y,nvt=".$data["nvt"].",tag=".$data["tag"].")<br>\n";
-}
-function Map ($x,$y) { global $gMap; return isset($gMap["$x,$y"])?$gMap["$x,$y"]:false; }
-foreach ($map->zone as $zone) MapSet((int)$zone["x"],(int)$zone["y"],$zone);
 
 
 function TagIconURL ($tagid) { return "http://data.dieverdammten.de/gfx/icons/tag_".((int)$tagid).".gif"; }
@@ -413,7 +498,7 @@ function GetMapToolTip ($x,$y) {
 	return $txt;
 }
 
-function AddMapNote ($rx,$ry,$icon,$zombies,$txt) {
+function AddMapNote ($rx,$ry,$icon,$zombies,$txt) { // $rx,$ry relative from city   0, 1
 	global $gGameID,$gSeelenID,$gGameDay;
 	$o = false;
 	$o->x = $rx;
@@ -464,13 +549,13 @@ function MapGetSpecial ($x,$y) {
 	$rx = $x-$gCityX;
 	$ry = $gCityY-$y;
 	$o = GetMapNote($rx,$ry); if (!$o) return false;
-	$old = ($o->day != $gGameDay) ? "_old" : "";
+	$old = ((int)$o->day != (int)$gGameDay) ? "_old" : "";
 	if ($o->icon == 0) return img("images/map/dot8_leer".$old.".gif","($rx/$ry) ".(($o->zombies >= 0)?$o->zombies:GetZombieNumText($x,$y))." Zombies. (leer) ".$o->txt);
 	if ($o->icon == 1) return img("images/map/dot8_voll".$old.".gif","($rx/$ry) ".(($o->zombies >= 0)?$o->zombies:GetZombieNumText($x,$y))." Zombies. (voll) ".$o->txt);
 	return false;
 }
 
-echo "<span class='map'>\n";
+echo "<span class='map' id='idMapContainer'>\n";
 echo "<table border=0 cellspacing=0 cellpadding=0>\n";
 for ($y=0;$y<$h;++$y) {
 	echo "<tr>";
@@ -488,15 +573,18 @@ for ($y=0;$y<$h;++$y) {
 			if ($data["danger"] >= 3) $bgimg = "zone_d3.gif";
 			if ($data["tag"]) $tagimg = img(TagIconURL($data["tag"]),GetMapToolTip($x,$y));
 		}
-		if ($x == $cityx && $y == $cityy) $bgimg = "city.gif";
+		if ($x == $gCityX && $y == $gCityY) $bgimg = "city.gif";
 		
 		$bgimg = "background='images/map/$bgimg'";
-		$special = MapGetSpecial($x,$y);
+		$special = MapGetSpecial($x,$y); // map_$x_$y
 		if ($special) $tagimg = $special;
 		//~ $tagimg = "";
 		
+		$rx = $x-$gCityX;
+		$ry = $gCityY-$y;
+		
 		$style = ""; // "bgcolor=green"
-		echo "<td $style $bgimg><span class='mapcell'>".trim($tagimg)."</span></td>";
+		echo "<td $style $bgimg><span class='mapcell' id='map_".$rx."_".$ry."'>".trim($tagimg)."</span></td>";
 		//~ echo "<td width=16 height=16>".($data?("nvt=".$data["nvt"].",tag=".$data["tag"]):"")."</td>";
 		//~ echo "<td width=16 height=16>".($data?"x":"")."</td>";
 	}
@@ -509,11 +597,11 @@ echo "</span>\n";
 <form action="?" method="post" class='mapadd' id='form_mapadd_1'>
 	<input class='mapaddsmall_input' type="text" size="1" maxlength="3" name="x" value=0>/
 	<input class='mapaddsmall_input' type="text" size="1" maxlength="3" name="y" value=0>
-	<span class='bframe'><input type="radio" name="dot" value="-1"></span>
-	<span class='bframe'><input type="radio" name="dot" value="1"><?=img("images/map/dot8_voll.gif")?></span>
-	<span class='bframe'><input type="radio" name="dot" value="0"><?=img("images/map/dot8_leer.gif")?></span>
+	<span class='bframe'><input type="radio" name="icon" value="-1" selected></span>
+	<span class='bframe'><input type="radio" name="icon" value="1"><?=img("images/map/dot8_voll.gif")?></span>
+	<span class='bframe'><input type="radio" name="icon" value="0"><?=img("images/map/dot8_leer.gif")?></span>
 	<input class='mapaddsmall_input' type="text" size="60" name="msg">
-	<input class='mapaddsmall_button' type="button" name="BLA" value="ok" onclick="alert('todo')">
+	<input class='mapaddsmall_button' type="button" name="BLA" value="ok" onclick="AddMapNote_Form(this.form)">
 </form>
 <?php
 
