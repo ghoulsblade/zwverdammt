@@ -201,7 +201,9 @@ echo "<table><tr><td valign=top>";
 		href("http://www.patamap.com/index.php?page=patastats","PataMap")." ".
 		href($xmlurl,"XmlStream")." ". 
 		"<br>\n";
-		// http://verdammt.mnutz.de/  (baldwin)
+		// http://verdammt.mnutz.de/  (baldwin,stadt)
+		// http://asid.dyndns.org/exphelper2 (asid,holleirc)
+		// http://coding-bereich.de/dieverdammten/
 		
 echo "</td><td valign=top>";
 
@@ -316,6 +318,11 @@ function MyLoadGlobals () {
 		if ((int)$citizen["x"] == $gCityX && (int)$citizen["y"] == $gCityY) {} else { ++$buerger_draussen; }
 	}
 	
+	
+	$e = $xml->data[0]->estimations[0]->e[0];
+	define("kZombieEstimationQualityMaxxed",$e["maxed"]!="0"); // schon maximale qualität ?
+
+	
 	global $gBuildingDone,$gUpgrades;
 	$gBuildingDone = array();
 	$gUpgrades = array();
@@ -424,9 +431,7 @@ echo "SeelenPunkte: ".GetSoulPoint($gGameDay-1)." für Tod VOR Zombieangriff<br>\
 echo "SeelenPunkte: ".GetSoulPoint($gGameDay)."(+".($gGameDay).") für Tod beim Zombieangriff oder morgen<br>\n";
 echo "SeelenPunkte: ".GetSoulPoint($gGameDay+1)."(+".($gGameDay+1).") für Tod beim morgigen Zombieangriff oder übermorgen<br>\n";
 
-$def_graben_delta = array(20,13,21,32,33,51,0);
-echo LinkBuilding("Grosser Graben")." verbessern/bauen:+".$def_graben_delta[GetBuildingLevel("Großer Graben")+1].img(kIconURL_def,"def")."<br>\n";
-if (!$bEstMax) echo "<b>Hilf mit die Schätzung im ".LinkBuilding("Wachturm")." zu verbessern!</b><br>\n";
+if (!kZombieEstimationQualityMaxxed) echo "<b>Hilf mit die Schätzung im ".LinkBuilding("Wachturm")." zu verbessern!</b><br>\n";
 
 if (CheckBuilding("Werkstatt",0,"wird benötigt um BaumStümpfe, MetallTrümmer und viele andere Sachen umzuwandeln","die")) {
 	CheckBuilding("Wachturm",0,"wird benötigt um den Forschungsturm zu bauen","den");
@@ -443,7 +448,7 @@ echo LinkBuilding("Forschungsturm")." ".(($f >= 0)?"Stufe $f":"nicht gebaut")." 
 
 
 // ***** ***** ***** ***** ***** BÜRGER
-echo "<table border=1><tr><td valign=top>\n"; // sub table : (bürger, exp+tote, verbesser+gebäude)
+echo "<table border=1 cellspacing=0><tr><td valign=top>\n"; // sub table : (bürger, exp+tote, verbesser+gebäude)
 
 // ***** ***** ***** ***** ***** BÜRGER
 
@@ -622,10 +627,9 @@ echo "</td><td valign=top align=right>\n"; // layout
 $e = $xml->data[0]->estimations[0]->e[0];
 $zombie_min = (int)($e["min"]);
 $zombie_max = (int)($e["max"]);
-$bEstMax = ($e["maxed"]!="0"); // schon maximale qualität ?
 $estimate_bad_html = img(kIconURL_warning,("ungenau, Hilf mit die Schätzung im Wachturm zu verbessern!"));
 echo "<table>";
-echo "<tr><td>".img(kIconURL_wachturm,("Schätzung")).($bEstMax?"":$estimate_bad_html)."</td><td>".img(kIconURL_zombie,"Zombies")."$zombie_min-$zombie_max</td><td>-&gt; ".img(kIconURL_def,"def")."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_min-$def)."-".max(0,$zombie_max-$def)."</td></tr>\n";
+echo "<tr><td>".img(kIconURL_wachturm,("Schätzung")).(kZombieEstimationQualityMaxxed?"":$estimate_bad_html)."</td><td>".img(kIconURL_zombie,"Zombies")."$zombie_min-$zombie_max</td><td>-&gt; ".img(kIconURL_def,"def")."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_min-$def)."-".max(0,$zombie_max-$def)."</td></tr>\n";
 $stat = array(0,24,50,97,149,215,294,387,489,595,709,831,935,1057,1190,1354,1548,1738,1926,2140,2353,2618,2892,3189,3506,3882,3952,4393,4841,5339,5772,6271,6880,7194,7736,8285,8728,9106,9671,9888,10666,11508,11705,12608,12139,12921,15248,11666);
 $zombie_av = isset($stat[$gGameDay]) ? $stat[$gGameDay] : false;
 $zombie_av2 = isset($stat[$gGameDay+1]) ? $stat[$gGameDay+1] : false;
@@ -633,6 +637,9 @@ if ($zombie_av) echo "<tr><td>".img(kIconURL_statistic,("Statistik"))."</td><td>
 if ($zombie_av2) echo "<tr><td>".img(kIconURL_statistic,("Statistik für Morgen"))."+1</td><td>".img(kIconURL_zombie,"Zombies")."$zombie_av2</td><td>-&gt; ".img(kIconURL_def,"def")."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_av2-$def)."</td></tr>\n";
 echo "</table>";
 
+$def_graben_delta = array(20,13,21,32,33,51,0);
+echo LinkBuilding("Grosser Graben")." verbessern/bauen:+".$def_graben_delta[GetBuildingLevel("Großer Graben")+1].img(kIconURL_def,"def")."<br>\n";
+if ($zombie_av && $zombie_av - $def > 0) { echo img(kIconURL_warning,"es wird Tote geben")."Baut mehr ".href("http://nobbz.de/wiki/index.php/Verteidigung","Verteidigung")."!<br>\n"; }
 
 echo "</td></tr></table>\n";
 
