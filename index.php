@@ -380,7 +380,7 @@ echo "<table border=1 cellpadding=0 cellspacing=0>\n";
 foreach ($xml->data[0]->citizens[0]->citizen as $citizen) { 
 	if ($citizen["dead"] != "0") continue;
 	$x = (int)$citizen["x"]; $rx = $x - $gCityX;
-	$y = (int)$citizen["y"]; $ry = $y - $gCityY;
+	$y = (int)$citizen["y"]; $ry = $gCityY - $y;
 	$bIsHome = ($x == $gCityX && $y == $gCityY);
 	$bHeld = $citizen["hero"] != "0";
 	$basedef = (int)$citizen["baseDef"];
@@ -443,12 +443,14 @@ echo "</td><td valign=top>\n";
 
 
 // ***** ***** ***** ***** ***** GEBÄUDE
+echo href("http://nobbz.de/wiki/index.php/Geb%C3%A4ude_%C3%9Cbersicht","Gebäude").":<br>\n";
 foreach ($xml->data[0]->city[0]->building as $building) {
 	echo img($icon_url.$building["img"].".gif").MyEscHTML($building["name"])."<br>\n";
 }
 // ***** ***** ***** ***** ***** upgrades
 
 echo "<br>\n";
+echo href("http://nobbz.de/wiki/index.php/Verbesserung_des_Tages","Verbesserungen:").":<br>\n";
 $icon_upgrade_url = "http://data.dieverdammten.de/gfx/icons/item_electro.gif";
 foreach ($xml->data[0]->upgrades[0]->up as $upgrade) {
 	echo img($icon_upgrade_url,"Verbesserung").$upgrade["level"]." ".MyEscHTML($upgrade["name"])."<br>\n"; // $upgrade["buildingId"]
@@ -464,16 +466,23 @@ echo "</td><td valign=top>\n";
 $cats = array();
 foreach ($xml->data[0]->bank[0]->item as $item) { 
 	$c = (int)$item["count"];
-	$b = (int)$item["broken"];
 	$cat = (string)$item["cat"];
-	$html = (($c>1)?($c."x"):"").img($icon_url_item.$item["img"].".gif",$item["name"]).(($b>0)?"($b kaputt)":"");
+	$bBroken = $item["broken"] != 0;
+	$html = (($c>1)?($c."x"):"").img($icon_url_item.$item["img"].".gif",$item["name"]);
+	if ($bBroken) $html = "<span style='border:1px solid red'>".$html."</span>";
 	if (!isset($cats[$cat])) $cats[$cat] = array();
 	$cats[$cat][] = $html;
 }
 
 echo "<table border=0 cellspacing=0 cellpadding=1>\n";
 $gCatTransLong = array("Rsc"=>"Rohstoffe","Furniture"=>"Einrichtungsgegenstände","Drug"=>"Medikamente","Armor"=>"Verteidigung","Food"=>"Vorräte","Weapon"=>"Waffen","Misc"=>"Verschiedenes");
-$gCatTrans = array("Rsc"=>"Rohstoffe","Furniture"=>"Einrichtung","Drug"=>"Medikamente","Armor"=>"Verteidigung","Food"=>"Vorräte","Weapon"=>"Waffen","Misc"=>"Verschiedenes");
+$gCatTrans = array("Rsc"=>"Rohst.",
+	"Furniture"=>href("http://nobbz.de/wiki/index.php/Einrichtungsgegenst%C3%A4nde","Deko"),
+	"Drug"=>"Drogen",
+	"Armor"=>href("http://nobbz.de/wiki/index.php/Kategorie:Verteidigungsgegenstand","Verteid."),
+	"Food"=>"Vorrat",
+	"Weapon"=>href("http://nobbz.de/wiki/index.php/Waffen","Waffen"),
+	"Misc"=>"Versch.");
 $cats2 = array();
 foreach ($gCatTrans as $k => $v) $cats2[$k] = isset($cats[$k])?$cats[$k]:array();
 foreach ($cats as $k => $v) if (!isset($gCatTrans[$k])) $cats2[$k] = $v;
@@ -549,9 +558,11 @@ function MapGetSpecial ($x,$y) {
 	$rx = $x-$gCityX;
 	$ry = $gCityY-$y;
 	$o = GetMapNote($rx,$ry); if (!$o) return false;
-	$old = ((int)$o->day != (int)$gGameDay) ? "_old" : "";
-	if ($o->icon == 0) return img("images/map/dot8_leer".$old.".gif","($rx/$ry) ".(($o->zombies >= 0)?$o->zombies:GetZombieNumText($x,$y))." Zombies. (leer) ".$o->txt);
-	if ($o->icon == 1) return img("images/map/dot8_voll".$old.".gif","($rx/$ry) ".(($o->zombies >= 0)?$o->zombies:GetZombieNumText($x,$y))." Zombies. (voll) ".$o->txt);
+	$age = (int)$gGameDay - (int)$o->day;
+	$agetxt = ($age != 0) ? (($age > 1) ? "[vor $age Tagen] " : "[gestern] ") : "";
+	$old = ($age != 0) ? "_old" : "";
+	if ($o->icon == 0) return img("images/map/dot8_leer".$old.".gif","($rx/$ry) ".(($o->zombies >= 0)?$o->zombies:GetZombieNumText($x,$y))." Zombies. $agetxt (leer) ".$o->txt);
+	if ($o->icon == 1) return img("images/map/dot8_voll".$old.".gif","($rx/$ry) ".(($o->zombies >= 0)?$o->zombies:GetZombieNumText($x,$y))." Zombies. $agetxt (voll) ".$o->txt);
 	return false;
 }
 
