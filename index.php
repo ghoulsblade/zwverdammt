@@ -75,7 +75,7 @@ background-color:#FFFFFF;
 border:1px solid #000000;
 font-size:8pt;
 align:center;
-width:400px;
+width:450px;
 }
 .map td {
 	width: 21px; height: 21px;
@@ -320,10 +320,19 @@ $e = $xml->data[0]->estimations[0]->e[0];
 $zombie_min = (int)($e["min"]);
 $zombie_max = (int)($e["max"]);
 $bEstMax = ($e["maxed"]!="0"); // schon maximale qualität ?
-echo "Schätzung".($bEstMax?"(gut)":"(<b>schlecht</b>)").":".img($icon_url_zombie,"Zombies")."$zombie_min-$zombie_max -&gt; ".img($icon_url_def,"def")."$def -&gt; ".img($icon_url_attack_in,"tote")."".max(0,$zombie_min-$def)."-".max(0,$zombie_max-$def)."<br>\n";
+echo "<table>";
+echo "<tr><td>Schätzung".($bEstMax?"(gut)":"(<b>schlecht</b>)").":</td><td>".img($icon_url_zombie,"Zombies")."$zombie_min-$zombie_max</td><td>-&gt; ".img($icon_url_def,"def")."$def</td><td>-&gt; ".img($icon_url_attack_in,"tote")."".max(0,$zombie_min-$def)."-".max(0,$zombie_max-$def)."</td></tr>\n";
 $stat = array(0,24,50,97,149,215,294,387,489,595,709,831,935,1057,1190,1354,1548,1738,1926,2140,2353,2618,2892,3189,3506,3882,3952,4393,4841,5339,5772,6271,6880,7194,7736,8285,8728,9106,9671,9888,10666,11508,11705,12608,12139,12921,15248,11666);
 $zombie_av = isset($stat[$gGameDay]) ? $stat[$gGameDay] : false;
-if ($zombie_av) echo "Statistik:".img($icon_url_zombie,"Zombies")."$zombie_av -&gt; ".img($icon_url_def,"def")."$def -&gt; ".img($icon_url_attack_in,"tote")."".max(0,$zombie_av-$def)."<br>\n";
+$zombie_av2 = isset($stat[$gGameDay+1]) ? $stat[$gGameDay+1] : false;
+if ($zombie_av) echo "<tr><td>Statistik:</td><td>".img($icon_url_zombie,"Zombies")."$zombie_av</td><td>-&gt; ".img($icon_url_def,"def")."$def</td><td>-&gt; ".img($icon_url_attack_in,"tote")."".max(0,$zombie_av-$def)."</td></tr>\n";
+if ($zombie_av2) echo "<tr><td>Statistik für morgen:</td><td>".img($icon_url_zombie,"Zombies")."$zombie_av2</td><td>-&gt; ".img($icon_url_def,"def")."$def</td><td>-&gt; ".img($icon_url_attack_in,"tote")."".max(0,$zombie_av2-$def)."</td></tr>\n";
+echo "</table>";
+function GetSoulPoint ($days) { $c=0; for ($i=1;$i<=$days;++$i) $c += $i; return $c; }
+echo "SeelenPunkte: ".GetSoulPoint($gGameDay-1)." für Tod VOR Zombieangriff<br>\n";
+echo "SeelenPunkte: ".GetSoulPoint($gGameDay)."(+".($gGameDay).") für Tod beim Zombieangriff oder morgen<br>\n";
+echo "SeelenPunkte: ".GetSoulPoint($gGameDay+1)."(+".($gGameDay+1).") für Tod beim morgigen Zombieangriff oder übermorgen<br>\n";
+
 $def_graben_delta = array(20,13,21,32,33,51,0);
 echo LinkBuilding("Grosser Graben")." verbessern/bauen:+".$def_graben_delta[GetBuildingLevel("Großer Graben")+1].img($icon_url_def,"def")."<br>\n";
 if (!$bEstMax) echo "<b>Hilf mit die Schätzung im ".LinkBuilding("Wachturm")." zu verbessern!</b><br>\n";
