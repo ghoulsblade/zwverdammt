@@ -22,6 +22,8 @@ function StripUml($txt) { return preg_replace('/[^a-zA-Z0-9]/','',$txt); }
 // note : htmlentities() is identical to htmlspecialchars() in all ways, except with htmlentities(), all characters which have HTML character entity equivalents are translated into these entities. 
 
 define("kNumIcons",7);
+define("kIconID_Notiz",6);
+
 
 $gIconText = array(
 	0=>"Feld leer",
@@ -84,7 +86,7 @@ function Ajax_MapCellInfo () { // idMapCellInfo
 	$rx = intval($_REQUEST["x"]);
 	$ry = intval($_REQUEST["y"]);
 	$lastnote = GetMapNote($rx,$ry);
-	$icon = $lastnote ? intval($lastnote->icon) : -1;
+	$icon = $lastnote ? intval($lastnote->icon) : kIconID_Notiz;
 	$msg = $lastnote ? $lastnote->txt : "";
 	$zombies = $lastnote ? $lastnote->zombies : "?";
 	if ($zombies == -1) $zombies = "?";
@@ -360,9 +362,10 @@ function Map ($x,$y) { global $gMap; return isset($gMap["$x,$y"])?$gMap["$x,$y"]
 
 function GetDeathTypeIconHTML ($dtype,$txt="") { 
 	switch ($dtype) {
-		case kDeathType_Aussenwelt:	return img(kIconURL_aussenwelt	,"Aussenwelt. ".$txt); break;
-		case kDeathType_Infektion:	return img(kIconURL_infektion	,"Infektion. ".$txt); break;
-		case kDeathType_Dehydriert:	return img(kIconURL_dehydration	,"Dehydriert. ".$txt); break;
+		case kDeathType_Aussenwelt:		return img(kIconURL_aussenwelt		,"Aussenwelt. ".$txt); break;
+		case kDeathType_Infektion:		return img(kIconURL_infektion		,"Infektion. ".$txt); break;
+		case kDeathType_Dehydriert:		return img(kIconURL_dehydration		,"Dehydriert. ".$txt); break;
+		case kDeathType_ZombieAngriff:	return img(kIconURL_ZombieAngriff	,"ZombieAngriff. ".$txt); break;
 	}
 	return img(kIconURL_death,"Unbekannt[".intval($dtype)."]. ".$txt);
 }
@@ -395,10 +398,12 @@ function MyLoadGlobals () {
 	define("kIconURL_aussenwelt"	, $icon_url."r_doutsd.gif");
 	define("kIconURL_infektion"		, $icon_url."r_dinfec.gif");
 	define("kIconURL_dehydration"	, $icon_url."r_dwater.gif");
+	define("kIconURL_ZombieAngriff"	, "http://data.dieverdammten.de/gfx/forum/smiley/h_zhead.gif");
 	
-	define("kDeathType_Aussenwelt",5);
-	define("kDeathType_Infektion",8);
 	define("kDeathType_Dehydriert",1);
+	define("kDeathType_Aussenwelt",5);
+	define("kDeathType_ZombieAngriff",6);
+	define("kDeathType_Infektion",8);
 	
 	$def = (int)($city->defense[0]["total"]);
 	$gGameDay = (int)$xml->headers[0]->game[0]["days"];
