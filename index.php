@@ -263,6 +263,7 @@ echo "<table><tr><td valign=top>";
 		href("http://forum.der-holle.de/","HolleForum")." ".
 		href("http://chat.mibbit.com/?channel=%23dieverdammten&server=irc.mibbit.net","Chat")." ".
 		href("http://www.patamap.com/index.php?page=patastats","PataMap")." ".
+		href("http://github.com/ghoulsblade/zwverdammt","github(sourcecode)")." ". 
 		href($xmlurl,"XmlStream")." ". 
 		"<br>\n";
 		// http://verdammt.mnutz.de/  (baldwin,stadt)
