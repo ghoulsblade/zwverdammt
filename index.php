@@ -55,21 +55,32 @@ function Ajax_AddMapNote () {
 	$ry = intval($_REQUEST["y"]);
 	$x = kCityX + $rx;
 	$y = kCityY - $ry;
-	AddMapNote($rx,$ry,intval($_REQUEST["icon"]),-1,$_REQUEST["msg"]);
+	//~ echo "Ajax_AddMapNote z=".$_REQUEST["zombies"]."<br>\n";
+	AddMapNote($rx,$ry,intval($_REQUEST["icon"]),$_REQUEST["zombies"],$_REQUEST["msg"]);
 	echo MapGetSpecial($x,$y);
 }
 
 function Ajax_MapCellInfo () { // idMapCellInfo
+	global $gGameID;
 	$rx = intval($_REQUEST["x"]);
 	$ry = intval($_REQUEST["y"]);
+	$lastnote = GetMapNote($rx,$ry);
+	$icon = $lastnote ? intval($lastnote->icon) : -1;
+	$msg = $lastnote ? $lastnote->txt : "";
+	$zombies = $lastnote ? $lastnote->zombies : "?";
+	if ($zombies == -1) $zombies = "?";
+	//~ echo "$rx,$ry lastnote=".($lastnote?"ok":"-")." gameid=$gGameID ".$lastnote->icon." ".$lastnote->txt."<br>\n";
 	?>
 	<form action="?" method="post" class='mapadd' id='form_mapadd_1'>
-		<input class='mapaddsmall_input' type="text" size="1" maxlength="3" name="x" value=<?=$rx?>>/
-		<input class='mapaddsmall_input' type="text" size="1" maxlength="3" name="y" value=<?=$ry?>>
-		<span class='bframe'><input type="radio" name="icon" value="-1" selected></span>
-		<span class='bframe'><input type="radio" name="icon" value="1"><?=img("images/map/dot8_voll.gif")?></span>
-		<span class='bframe'><input type="radio" name="icon" value="0"><?=img("images/map/dot8_leer.gif")?></span>
-		<input class='mapaddsmall_input' type="text" size="60" name="msg">
+		<?=$rx?>/<?=$ry?>, <?=abs($rx)+abs($ry)?>AP <?=$lastnote?("(von Tag ".$lastnote->day.")"):""?><br>
+		<?=img(kIconURL_zombie,"zombies")?><input class='mapaddsmall_input' type="text" size="5" maxlength="5" name="zombies" value='<?=$zombies?>' />
+		<input type="hidden" name="x" value='<?=$rx?>'/>
+		<input type="hidden" name="y" value='<?=$ry?>'/>
+		<span class='bframe'><input type="radio" name="icon" value="-1" <?=($icon==-1)?"checked":""?> /></span>
+		<span class='bframe'><input type="radio" name="icon" value="1" <?=($icon==1)?"checked":""?> /><?=img("images/map/dot8_voll.gif","nicht-leer")?></span>
+		<span class='bframe'><input type="radio" name="icon" value="0" <?=($icon==0)?"checked":""?> /><?=img("images/map/dot8_leer.gif","leer")?></span>
+		<br>
+		<textarea cols="40" rows="10" name='msg'><?=htmlentities($msg)?></textarea><br>
 		<input class='mapaddsmall_button' type="button" name="BLA" value="ok" onclick="AddMapNote_Form(this.form)">
 	</form>
 	<?php
@@ -77,6 +88,25 @@ function Ajax_MapCellInfo () { // idMapCellInfo
 
 
 
+function AddMapNote ($rx,$ry,$icon,$zombies,$txt) { // $rx,$ry relative from city   0, 1
+	global $gGameID,$gSeelenID,$gGameDay;
+	$o = false;
+	$o->x = $rx;
+	$o->y = $ry;
+	$o->icon = $icon;
+	$o->zombies = $zombies; // ($zombies=="?")?-1:intval($zombies);
+	$o->txt = $txt;
+	$o->time = time();
+	$o->day = $gGameDay;
+	$o->gameid = $gGameID;
+	$o->seelenid = $gSeelenID;
+	sql("INSERT INTO mapnote SET ".obj2sql($o));
+}
+function GetMapNote ($x,$y) {
+	global $gGameID; 
+	//~ echo "SELECT * FROM mapnote WHERE ".arr2sql(array("gameid"=>$gGameID,"x"=>$x,"y"=>$y)," AND ");
+	return sqlgetobject("SELECT * FROM mapnote WHERE ".arr2sql(array("gameid"=>$gGameID,"x"=>$x,"y"=>$y)," AND ")." ORDER BY `id` DESC LIMIT 1"); 
+}
 
 
 
@@ -160,7 +190,9 @@ function MyAjaxGet (sQuery,sTargetID) {
 	else	xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");	// code for IE6, IE5
 	xmlhttp.onreadystatechange = function() {
 		if (xmlhttp.readyState==4 && xmlhttp.status==200) {
-			document.getElementById(sTargetID).innerHTML = xmlhttp.responseText;
+			if (document.getElementById(sTargetID)) 
+				document.getElementById(sTargetID).innerHTML = xmlhttp.responseText;
+			else alert("ajax target element not found : "+sTargetID);
 		}
 	}
 	xmlhttp.open("GET",sQuery,true);
@@ -170,7 +202,8 @@ function MyAjaxGet (sQuery,sTargetID) {
 function AddMapNote_Form (form) {
 	var x = form.x.value;
 	var y = form.y.value;
-	var sQuery = "?ajax=addmapnote&x="+escape(""+x)+"&y="+escape(""+y)+"&icon="+RadioValue(form.icon,-1)+"&msg="+escape(form.msg.value);
+	var z = form.zombies.value;
+	var sQuery = "?ajax=addmapnote&x="+escape(""+x)+"&y="+escape(""+y)+"&zombies="+escape(""+z)+"&icon="+RadioValue(form.icon,-1)+"&msg="+escape(form.msg.value);
 	MyAjaxGet(sQuery,"map_"+x+"_"+y); // whole map would be idMapContainer
 }
 
@@ -624,7 +657,7 @@ foreach ($xml->data[0]->bank[0]->item as $item) {
 	$c = (int)$item["count"];
 	$cat = (string)$item["cat"];
 	$bBroken = $item["broken"] != 0;
-	$html = (($c>1)?($c."x"):"").LinkItem($item["name"],img($icon_url_item.$item["img"].".gif",$item["name"],$bBroken?"class='broken'":""));
+	$html = (($c>1)?($c."x"):"").LinkItem($item["name"],img($icon_url_item.$item["img"].".gif",utf8_decode($item["name"]),$bBroken?"class='broken'":""));
 	if (!isset($cats[$cat])) $cats[$cat] = array();
 	$cats[$cat][] = "<span style='white-space: nowrap;'>".$html."</span>";
 }
@@ -686,41 +719,7 @@ function GetMapToolTip ($x,$y) {
 	return $txt;
 }
 
-function AddMapNote ($rx,$ry,$icon,$zombies,$txt) { // $rx,$ry relative from city   0, 1
-	global $gGameID,$gSeelenID,$gGameDay;
-	$o = false;
-	$o->x = $rx;
-	$o->y = $ry;
-	$o->icon = $icon;
-	$o->zombies = $zombies;
-	$o->txt = $txt;
-	$o->time = time();
-	$o->day = $gGameDay;
-	$o->gameid = $gGameID;
-	$o->seelenid = $gSeelenID;
-	sql("INSERT INTO mapnote SET ".obj2sql($o));
-}
-function GetMapNote ($x,$y) { global $gGameID; return sqlgetobject("SELECT * FROM mapnote WHERE ".arr2sql(array("gameid"=>$gGameID,"x"=>$x,"y"=>$y)," AND ")." ORDER BY `id` DESC LIMIT 1"); }
 
-if ($gGameID == 826 && !sqlgetone("SELECT 1 FROM mapnote WHERE gameid = ".intval($gGameID))) {
-	AddMapNote( 0, 1,0,-1,"");
-	AddMapNote(-1, 0,0,-1,"");
-	AddMapNote( 1, 0,0,-1,"");
-	AddMapNote( 0,-1,0,2 ,"");
-	AddMapNote(-1,-1,0,-1,"");
-	AddMapNote( 1,-1,0,-1,"");
-	AddMapNote( 0,-2,0,4 ,"");
-	AddMapNote(-1,-2,1,-1,"REGENERIERT! GRABEN!");
-	AddMapNote( 1,-2,1,-1,"(Feld wird bis morgen ausgegraben)");
-	AddMapNote( 0,-3,0,5 ,"");
-	AddMapNote( 1,-3,0,4 ,"");
-	AddMapNote(-1,-3,1,-1,"REGENERIERT! GRABEN!");
-	AddMapNote( 2,-3,0,-1,"");
-	AddMapNote( 1,-4,1,6 ,"(Feld wird bis morgen ausgegraben)");
-	AddMapNote( 0,-4,1,-1,"REGENERIERT! GRABEN!");
-	AddMapNote( 2,-4,1,-1,"REGENERIERT! GRABEN!");
-	AddMapNote( 1,-5,1,-1,"REGENERIERT! GRABEN!");
-}
 
 
 function GetZombieNumText ($x,$y) {
