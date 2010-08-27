@@ -1,4 +1,7 @@
 <?php
+// uebersicht und karte fuer das browsergame www.dieverdammten.de
+// xml api via http://www.php.net/manual/de/book.simplexml.php
+
 require_once("defines.php");
 require_once("roblib.php");
 function href ($url,$title=false) { return "<a href='$url'>".($title?$title:$url)."</a>"; }
@@ -609,7 +612,7 @@ foreach ($arr as $cadaver) {
 	$cleanup_txt = ($cleanup["user"] != "")?("entsorgt von ".htmlspecialchars($cleanup["user"])." : ".$cleanup["type"]):false;
 	
 	echo "<td>".GetDeathTypeIconHTML($dtype,$cleanup_txt?$cleanup_txt:"").($bMussEntsorgtWerden?img(kIconURL_warning,"LEICHE ENTSORGEN! SONST STEHT SIE ALS ZOMBIE WIEDER AUF!"):"")."</td>";
-	echo "<td>".(($msg && $msg != "")?img(kIconURL_msg,$msg):"")."</td>";
+	echo "<td>".(($msg && $msg != "")?img(kIconURL_msg,utf8_decode($msg)):"")."</td>";
 	echo "<td>".MyEscHTML($cadaver["name"])."</td>";
 	echo "<td>Tag".$cadaver["day"]."</td>";
 	echo "</tr>\n";
