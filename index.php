@@ -6,19 +6,32 @@ require_once("defines.php");
 require_once("roblib.php");
 function href ($url,$title=false) { return "<a href='$url'>".($title?$title:$url)."</a>"; }
 
-//~ function MyEscXML ($txt) { return htmlentities($txt); } // ö->uuml;
+//~ function MyEscXML ($txt) { return htmlspecialchars($txt); } // ö->uuml;
 function MyEscXML ($txt) { 
 	//~ return utf8_decode($txt);
 	return strtr($txt,array("roßer"=>"rosser","ö"=>"&ouml;","ü"=>"&uuml;","ä"=>"ae","Ö"=>"&Ouml;","Ü"=>"&Uuml;","Ä"=>"&Auml;")); 
 		//~ wegen den umlauten ein tip: utf8_decode 
-} // htmlentities
-function MyEsc ($txt) { return utf8_decode($txt); } // htmlentities
-function MyEscHTML ($txt) { return utf8_decode($txt); } // htmlentities
-function MyEscHTML2 ($txt) { return htmlentities(($txt)); } // htmlentities
-//~ function MyEsc ($txt) { return strtr($txt,array("Ã?"=>"ß","Ã¼"=>"ü","Ã¶"=>"ö")); } // htmlentities
-// htmlspecialchars , htmlentities
-function img ($url,$title=false,$special="") { $title = $title?(utf8_decode(htmlentities($title))):false; return "<img $special src='$url' ".($title?("alt='$title' title='$title'"):"")."/>"; }
+} // htmlspecialchars
+function MyEsc ($txt) { return utf8_decode($txt); } // htmlspecialchars
+function MyEscHTML ($txt) { return utf8_decode($txt); } // htmlspecialchars
+function MyEscHTML2 ($txt) { return htmlspecialchars(($txt)); } // htmlspecialchars
+//~ function MyEsc ($txt) { return strtr($txt,array("Ã?"=>"ß","Ã¼"=>"ü","Ã¶"=>"ö")); } // htmlspecialchars
+function img ($url,$title=false,$special="") { $title = $title?(utf8_decode(htmlspecialchars($title))):false; return "<img $special src='$url' ".($title?("alt='$title' title='$title'"):"")."/>"; }
 function StripUml($txt) { return preg_replace('/[^a-zA-Z0-9]/','',$txt); }
+
+// note : htmlentities() is identical to htmlspecialchars() in all ways, except with htmlentities(), all characters which have HTML character entity equivalents are translated into these entities. 
+
+define("kNumIcons",7);
+
+$gIconText = array(
+	0=>"Feld leer",
+	1=>"Feld regeneriert : graben!",
+	2=>"Feld temporaer gesichert",
+	3=>"Notruf",
+	4=>"warnung",
+	5=>"ok",
+	6=>"notiz",
+);
 
 $gShowAvatars = false;
 
@@ -38,9 +51,12 @@ if (isset($_REQUEST["LogOut"])) {
 
 //~ session_start(); // -> man kann $_SESSION benutzen
 
-function GetLatestXmlStrFromSeelenID ($seelenid) { return sqlgetone("SELECT xml FROM xml WHERE ".arr2sql(array("seelenid"=>$seelenid))." ORDER BY id DESC LIMIT 1"); }
+function GetLatestXmlStrFromGameID		($gameid)	{ return sqlgetone("SELECT xml FROM xml WHERE ".arr2sql(array("gameid"=>$gameid))." ORDER BY id DESC LIMIT 1"); }
+function GetLatestXmlStrFromSeelenID	($seelenid)	{ return sqlgetone("SELECT xml FROM xml WHERE ".arr2sql(array("seelenid"=>$seelenid))." ORDER BY id DESC LIMIT 1"); }
 
-if (isset($_REQUEST["ajax"])) {
+define("kSearchGameID",isset($_REQUEST["gameid"])?intval($_REQUEST["gameid"]):false);
+
+if (!kSearchGameID && isset($_REQUEST["ajax"])) {
 	$xmlstr = GetLatestXmlStrFromSeelenID($gSeelenID);
 	if (!$xmlstr) exit("failed to load xml");
 	$xml = simplexml_load_string(MyEscXML($xmlstr));
@@ -60,11 +76,11 @@ function Ajax_AddMapNote () {
 	$y = kCityY - $ry;
 	//~ echo "Ajax_AddMapNote z=".$_REQUEST["zombies"]."<br>\n";
 	AddMapNote($rx,$ry,intval($_REQUEST["icon"]),$_REQUEST["zombies"],$_REQUEST["msg"]);
-	echo MapGetSpecial($x,$y);
+	echo MapGetCellContent($x,$y);
 }
 
 function Ajax_MapCellInfo () { // idMapCellInfo
-	global $gGameID;
+	global $gGameID,$gIconText;
 	$rx = intval($_REQUEST["x"]);
 	$ry = intval($_REQUEST["y"]);
 	$lastnote = GetMapNote($rx,$ry);
@@ -76,15 +92,16 @@ function Ajax_MapCellInfo () { // idMapCellInfo
 	?>
 	<form action="?" method="post" class='mapadd' id='form_mapadd_1'>
 		<?=$rx?>/<?=$ry?>, <?=abs($rx)+abs($ry)?>AP <?=$lastnote?("(von Tag ".$lastnote->day.")"):""?><br>
-		<?=img(kIconURL_zombie,"zombies")?><input class='mapaddsmall_input' type="text" size="5" maxlength="5" name="zombies" value='<?=$zombies?>' />
+		<?=img(kIconURL_zombie,"zombies")?><input class='mapaddsmall_input' type="text" size="3" maxlength="5" name="zombies" value='<?=$zombies?>' />
 		<input type="hidden" name="x" value='<?=$rx?>'/>
 		<input type="hidden" name="y" value='<?=$ry?>'/>
 		<span class='bframe'><input type="radio" name="icon" value="-1" <?=($icon==-1)?"checked":""?> /></span>
-		<span class='bframe'><input type="radio" name="icon" value="1" <?=($icon==1)?"checked":""?> /><?=img("images/map/dot8_voll.gif","nicht-leer")?></span>
-		<span class='bframe'><input type="radio" name="icon" value="0" <?=($icon==0)?"checked":""?> /><?=img("images/map/dot8_leer.gif","leer")?></span>
+		<?php for ($i=0;$i<kNumIcons;++$i) {?>
+		<span class='bframe'><input type="radio" name="icon" value="<?=$i?>" <?=($icon==$i)?"checked":""?> /><?=img("images/map/icon_".$i.".gif",$gIconText[$i])?></span>
+		<?php }?>
 		<br>
-		<textarea cols="40" rows="10" name='msg'><?=htmlentities($msg)?></textarea><br>
-		<input class='mapaddsmall_button' type="button" name="BLA" value="ok" onclick="AddMapNote_Form(this.form)">
+		<textarea cols="40" rows="10" name='msg'><?=htmlspecialchars($msg)?></textarea><br>
+		<input class='mapaddsmall_button' type="button" name="BLA" value="speichern" onclick="AddMapNote_Form(this.form)">
 	</form>
 	<?php
 }
@@ -161,9 +178,17 @@ width:450px;
 	font-size:12px;
 	border: 1px solid #008030;
 	height:18px;
-	//~ width:20px;
+	width:20px;
 	padding:0px;
 	margin:0px;
+}
+.mapcellzombietxt {
+	font-family:Arial,sans-serif;
+	color:#800000;
+	font-size:10px;
+	font-weight:bold;
+	background-color:#8aa534;
+	cursor:default;
 }
 .mapaddsmall_button {
 	font-family:Arial,sans-serif;
@@ -172,7 +197,7 @@ width:450px;
 	font-size:12px;
 	border: 1px solid #008030;
 	height:20px;
-	width:20px;
+	// width:20px;
 	// padding:0px;
 	margin:2px 0px 0px 0px; // top,bottom,left,right
 }
@@ -285,16 +310,32 @@ $gStoreXML = true;
 $gDemo = false;
 $xmlurl_sample = "sample.xml";
 $xmlstr = false;
-if ($gUseSampleData) { 
-	$xmlurl = $xmlurl_sample; 
-	$gDemo = true;
+$xml = false;
+if (kSearchGameID) {
+	$xmlstr = GetLatestXmlStrFromGameID(kSearchGameID); 
+	if (!$xmlstr) exit("failed to load xml");
+	$xml = simplexml_load_string(MyEscXML($xmlstr));
 	$gStoreXML = false;
-	$xmlstr = GetLatestXmlStrFromSeelenID(kMySQL_SampleSoulID);
-	//~ if ($xmlstr) echo "sample load from db OK<br>\n"; else echo "sample load from db failed<br>\n";
-}
-if (!$xmlstr) $xmlstr = file_get_contents($xmlurl);
-@$xml = simplexml_load_string(MyEscXML($xmlstr));
+} else {
+	if ($gUseSampleData) { 
+		$xmlurl = $xmlurl_sample; 
+		$gDemo = true;
+		$gStoreXML = false;
+		$xmlstr = GetLatestXmlStrFromSeelenID(kMySQL_SampleSoulID);
+		//~ if ($xmlstr) echo "sample load from db OK<br>\n"; else echo "sample load from db failed<br>\n";
+	}
+	if (!$xmlstr) $xmlstr = file_get_contents($xmlurl);
+	@$xml = simplexml_load_string(MyEscXML($xmlstr));
 
+	if (!$xml->data[0]->city[0]["city"] || $xml->status[0]["open"] == "0") {
+		echo "<h1>Webseite down, Zombie-Angriff im Gange!</h1>\n";
+		echo "(lade dummy/demo daten)<br>\n";
+		$xmlurl = $xmlurl_sample;
+		$xmlstr = file_get_contents($xmlurl);
+		$xml = simplexml_load_string(MyEscXML($xmlstr));
+		$gStoreXML = false;
+	}
+}
 
 /*
 if file_get_contents is too slow, try this
@@ -312,15 +353,6 @@ function MyDownAndReadHTML ($url) {
 	return file_get_contents($gMyTempPath);
 }
 */
-
-if (!$xml->data[0]->city[0]["city"] || $xml->status[0]["open"] == "0") {
-	echo "<h1>Webseite down, Zombie-Angriff im Gange!</h1>\n";
-	echo "(lade dummy/demo daten)<br>\n";
-	$xmlurl = $xmlurl_sample;
-	$xmlstr = file_get_contents($xmlurl);
-	$xml = simplexml_load_string(MyEscXML($xmlstr));
-	$gStoreXML = false;
-}
 
 //~ $_SESSION["xml"] = $xml;
 
@@ -480,7 +512,7 @@ echo "<table border=1 cellspacing=0><tr><td valign=top>\n";
 
 // ***** ***** ***** ***** ***** STADT INFOS 
 
-echo "Stadt=".$city["city"];
+echo "Stadt=".utf8_decode($city["city"]);
 echo " Tag=".$gGameDay;
 echo " ".img($icon_url."small_water.gif","Wasser").":".$city["water"];
 echo " &Uuml;berlebende=".$buerger_alive;
@@ -524,6 +556,7 @@ $gDefIcon[3] = $icon_url."upgrade_house1.gif";
 function GetHeldenBerufHTML ($job) {
 	if ($job == "eclair") return img(kIconURL_hero_scout,"Aufklärer, kann Zombie-Anzahl in umliegenden Feldern schätzen und mit Glück durchschleichen");
 	if ($job == "collec") return img(kIconURL_hero_dig,"Buddler, kann sehen ob umliegende Felder leer sind und alle 90 minuten graben");
+	if ($job == "guardian") return img(kIconURL_hero_def,"Verteidiger, hat 4 Kontrollpunkte und bringt 1 Def Punkt für die Stadt");
 	return $job;
 }
 
@@ -735,17 +768,28 @@ function GetZombieNumText ($x,$y) {
 	return "0-99";
 }
 
-function MapGetSpecial ($x,$y) {
-	global $gGameID,$gGameDay;
+function MapGetCellContent ($x,$y) {
+	global $gGameID,$gGameDay,$gIconText;
 	$rx = $x-kCityX;
 	$ry = kCityY-$y;
-	$o = GetMapNote($rx,$ry); if (!$o) return false;
-	$age = (int)$gGameDay - (int)$o->day;
-	$agetxt = ($age != 0) ? (($age > 1) ? "[vor $age Tagen] " : "[gestern] ") : "";
-	$old = ($age != 0) ? "_old" : "";
-	if ($o->icon == 0) return img("images/map/dot8_leer".$old.".gif","($rx/$ry) ".(($o->zombies >= 0)?$o->zombies:GetZombieNumText($x,$y))." Zombies. $agetxt (leer) ".$o->txt);
-	if ($o->icon == 1) return img("images/map/dot8_voll".$old.".gif","($rx/$ry) ".(($o->zombies >= 0)?$o->zombies:GetZombieNumText($x,$y))." Zombies. $agetxt (voll) ".$o->txt);
-	return false;
+	$o = GetMapNote($rx,$ry);
+	$data = Map($x,$y);
+	if ($o) {
+		$age = (int)$gGameDay - (int)$o->day;
+		$bToday = ($age == 0);
+		$zombies = $bToday ? $o->zombies : "?"; // GetZombieNumText($x,$y)
+		$timetxt = date("H:i",$o->time);
+		$timetxt2 = (!$bToday) ? (($age > 1) ? "[vor $age Tagen $timetxt] " : "[gestern $timetxt] ") : "[heute $timetxt]";
+		$old = (!$bToday) ? "_old" : "";
+		$html = "";
+		if ($o->icon >= 0 && $o->icon < kNumIcons)
+				$html .= img("images/map/icon_".$o->icon.$old.".gif","($rx/$ry) ".$zombies." Zombies. <".$gIconText[$o->icon]."> ".$timetxt2." ".$o->txt);
+		else	$html .= img(TagIconURL($data["tag"]),GetMapToolTip($x,$y));
+		$html .= ($zombies != "?") ? ("<span class='mapcellzombietxt' title='".htmlspecialchars($zombies)." Zombies'>$zombies</span>") : ""; // GetZombieNumText($x,$y)
+		return $html;
+	}
+	if ($data["tag"]) return img(TagIconURL($data["tag"]),GetMapToolTip($x,$y));
+	return "";
 }
 
 echo "<table border=0 cellspacing=0><tr><td valign=top>\n";
@@ -756,7 +800,6 @@ for ($y=0;$y<$h;++$y) {
 	for ($x=0;$x<$w;++$x) {
 		$data = Map($x,$y);
 		$bgimg = "zone_bg.gif";
-		$tagimg = "";
 		if ($data) {
 			$bHasBuilding = isset($data->building);
 			$bViewed = ((int)$data["nvt"]) == 0; // nvt : 1/0 (value is 1 was already discovered, but Not Visited Today)
@@ -765,20 +808,16 @@ for ($y=0;$y<$h;++$y) {
 			if ($data["danger"] == 1) $bgimg = "zone_d1.gif";
 			if ($data["danger"] == 2) $bgimg = "zone_d2.gif";
 			if ($data["danger"] >= 3) $bgimg = "zone_d3.gif";
-			if ($data["tag"]) $tagimg = img(TagIconURL($data["tag"]),GetMapToolTip($x,$y));
 		}
 		if ($x == kCityX && $y == kCityY) $bgimg = "city.gif";
 		
 		$bgimg = "background='images/map/$bgimg'";
-		$special = MapGetSpecial($x,$y); // map_$x_$y
-		if ($special) $tagimg = $special;
-		//~ $tagimg = "";
 		
 		$rx = $x-kCityX;
 		$ry = kCityY-$y;
 		
 		$style = ""; // "bgcolor=green"
-		echo "<td $style $bgimg onclick='MapClickCell($rx,$ry);'><span class='mapcell' id='map_".$rx."_".$ry."'>".trim($tagimg)."</span></td>";
+		echo "<td $style $bgimg onclick='MapClickCell($rx,$ry);' title='($rx,$ry)'><span class='mapcell' id='map_".$rx."_".$ry."'>".MapGetCellContent($x,$y)."</span></td>";
 		//~ echo "<td width=16 height=16>".($data?("nvt=".$data["nvt"].",tag=".$data["tag"]):"")."</td>";
 		//~ echo "<td width=16 height=16>".($data?"x":"")."</td>";
 	}
