@@ -91,9 +91,10 @@ function Ajax_MapCellInfo () { // idMapCellInfo
 	$zombies = $lastnote ? $lastnote->zombies : "?";
 	if ($zombies == -1) $zombies = "?";
 	//~ echo "$rx,$ry lastnote=".($lastnote?"ok":"-")." gameid=$gGameID ".$lastnote->icon." ".$lastnote->txt."<br>\n";
+	
 	?>
 	<form action="?" method="post" class='mapadd' id='form_mapadd_1'>
-		<?=$rx?>/<?=$ry?>, <?=abs($rx)+abs($ry)?>AP <?=$lastnote?("(von Tag ".$lastnote->day.")"):""?><br>
+		(<?=$rx?>/<?=$ry?>) [<?=abs($rx)+abs($ry)?>AP]  <?=$lastnote?("[".GetAgeText($lastnote->day,$lastnote->time)."]"):""?><br>
 		<?=img(kIconURL_zombie,"zombies")?><input class='mapaddsmall_input' type="text" size="3" maxlength="5" name="zombies" value='<?=$zombies?>' />
 		<input type="hidden" name="x" value='<?=$rx?>'/>
 		<input type="hidden" name="y" value='<?=$ry?>'/>
@@ -266,7 +267,7 @@ function SeelenID_EntryForm () {
 	global $gSeelenID;
 	if ($gSeelenID) return;
 	?> <form action="" method="POST"> Seelen-ID:<input name="SeelenID"> <input type="submit" name="Login" value="Login"> </form> <?php
-	echo href("?sample=1","(Vorschau ohne SeelenID)")."<br>\n";
+	//~ echo href("?sample=1","(Vorschau ohne SeelenID)")."<br>\n";
 	PrintFooter(); exit(0);
 }
 
@@ -330,10 +331,15 @@ if (kSearchGameID) {
 	@$xml = simplexml_load_string(MyEscXML($xmlstr));
 
 	if (!$xml->data[0]->city[0]["city"] || $xml->status[0]["open"] == "0") {
+		$xmlstr = GetLatestXmlStrFromSeelenID($gSeelenID);
 		echo "<h1>Webseite down, Zombie-Angriff im Gange!</h1>\n";
-		echo "(lade dummy/demo daten)<br>\n";
-		$xmlurl = $xmlurl_sample;
-		$xmlstr = file_get_contents($xmlurl);
+		if ($xmlstr) {
+			echo "(lade letzten stand)<br>\n";
+		} else {
+			echo "(lade dummy/demo daten)<br>\n";
+			$xmlurl = $xmlurl_sample;
+			$xmlstr = file_get_contents($xmlurl);
+		}
 		$xml = simplexml_load_string(MyEscXML($xmlstr));
 		$gStoreXML = false;
 	}
@@ -384,6 +390,13 @@ function MyLoadGlobals () {
 	define("kIconURL_attackin"		,$icon_url."small_death.gif");
 	define("kIconURL_def"			,$icon_url."item_shield.gif");
 	
+	global $gDefIcon;
+	$gDefIcon = array();
+	$gDefIcon[0] = $icon_url."upgrade_none.gif";
+	$gDefIcon[1] = $icon_url."upgrade_tent.gif";
+	$gDefIcon[3] = $icon_url."upgrade_house1.gif";
+
+	
 	define("kIconURL_msg"			,"http://data.dieverdammten.de/gfx/forum/smiley/h_chat.gif");
 	define("kIconURL_death"			, $icon_url."small_death.gif");
 	define("kIconURL_warning"		, $icon_url."small_warning.gif");
@@ -433,6 +446,8 @@ function MyLoadGlobals () {
 
 	
 	global $gMap,$w,$h;
+	global $gRuinen;
+	$gRuinen = array();
 	$map = $xml->data[0]->map[0];
 	$w = $map["wid"];
 	$h = $map["hei"];
@@ -442,7 +457,13 @@ function MyLoadGlobals () {
 		$gMap["$x,$y"] = $data; 
 		//~ echo "MapSet($x,$y,nvt=".$data["nvt"].",tag=".$data["tag"].")<br>\n";
 	}
-	foreach ($map->zone as $zone) MapSet((int)$zone["x"],(int)$zone["y"],$zone);
+	foreach ($map->zone as $zone) {
+		$x = intval($zone["x"]);
+		$y = intval($zone["y"]);
+		MapSet($x,$y,$zone);
+		$r = $zone->building[0];
+		if ($r) $gRuinen[] = array("x"=>$x,"y"=>$y,"node"=>$r);
+	}
 }
 
 MyLoadGlobals();
@@ -470,6 +491,7 @@ function CheckBuilding ($bname,$minlevel,$text,$pre="den/die") {
 }
 function WikiName ($name) { return strtr((string)$name,array("ß"=>"ss"," "=>"_")); }
 function LinkWiki		($name,$html=false) { return href("http://nobbz.de/wiki/index.php/".urlencode(WikiName($name)),$html?$html:MyEscHTML($name)); }
+function LinkRuin		($name,$html=false) { return LinkWiki($name,$html); }
 function LinkBuilding	($name,$html=false) { return LinkWiki($name,$html); }
 function LinkItem		($name,$html=false) { return LinkWiki($name,$html); }
 
@@ -554,10 +576,6 @@ echo "<table border=1 cellspacing=0><tr><td valign=top>\n"; // sub table : (bürg
 
 // ***** ***** ***** ***** ***** BÜRGER
 
-$gDefIcon = array();
-$gDefIcon[1] = $icon_url."upgrade_tent.gif";
-$gDefIcon[3] = $icon_url."upgrade_house1.gif";
-
 function GetHeldenBerufHTML ($job) {
 	if ($job == "eclair") return img(kIconURL_hero_scout,"Aufklärer, kann Zombie-Anzahl in umliegenden Feldern schätzen und mit Glück durchschleichen");
 	if ($job == "collec") return img(kIconURL_hero_dig,"Buddler, kann sehen ob umliegende Felder leer sind und alle 90 minuten graben");
@@ -577,12 +595,13 @@ foreach ($xml->data[0]->citizens[0]->citizen as $citizen) {
 	$bHeld = $citizen["hero"]!=0;
 	$bBan = $citizen["ban"]!=0;
 	$bBarackenBauer = ($gGameDay==1 && $basedef > 1);
+	$tippb = htmlspecialchars("Dieser Spieler hat ein Holzbrett verschwendet um eine Baracke zu errichten. Holzbretter werden am ersten Tag dringend für wichtige gebäude benötigt.");
 	echo "<tr>";
 	if ($gShowAvatars) echo "<td>".img($avatar_url.$citizen["avatar"],null,"style='width:90px; height:30px;'")."</td>";
 	echo "<td>".MyEscHTML($citizen["name"])."</td>";
 	echo "<td nowrap>".($bHeld?(img(kIconURL_hero,"Held").GetHeldenBerufHTML($citizen["job"])):img(kIconURL_nonhero))."</td>";
 	echo "<td>".($bBan?img(kIconURL_warning,"!VERBANNT!"):"")."</td>";
-	echo "<td nowrap>".$basedef.($bHeld?"+2":"").img(kIconURL_def).(isset($gDefIcon[$basedef])?img($gDefIcon[$basedef]):"").($bBarackenBauer?"<b>BARACKENBAUER!</b>":"")."</td>";
+	echo "<td nowrap>".$basedef.($bHeld?"+2":"").img(kIconURL_def).(isset($gDefIcon[$basedef])?img($gDefIcon[$basedef]):"").($bBarackenBauer?"<b title='$tippb'>BARACKENBAUER!</b>":"")."</td>";
 	echo "<td ".($bIsHome?"":"bgcolor=orange").">".($bIsHome?(img("images/map/city.gif")):("$rx,$ry"))."</td>";
 	echo "</tr>\n";
 	/*
@@ -628,7 +647,15 @@ if ($c < 3) {
 //~ <point x="4" y="4"/>
 
 
+// ***** ***** ***** ***** ***** Ruinen
 
+echo "<br>\n";
+echo href("http://nobbz.de/wiki/index.php/Ruinen","Ruinen (".count($gRuinen)."/10)")."<br>\n";
+foreach ($gRuinen as $r) {
+	$x = $r["x"] - kCityX;
+	$y = kCityY - $r["y"];
+	echo "($x/$y)[".(abs($x)+abs($y))."AP]".LinkRuin($r["node"]["name"])."<br>\n";
+}
 
 // ***** ***** ***** ***** ***** TOTE
 echo "<br>\n";
@@ -773,6 +800,13 @@ function GetZombieNumText ($x,$y) {
 	return "0-99";
 }
 
+function GetAgeText ($day,$t) {
+	global $gGameDay;
+	$timetxt = date("H:i",$t);
+	$age = (int)$gGameDay - (int)$day;
+	return ($age != 0) ? (($age > 1) ? "vor $age Tagen $timetxt" : "gestern $timetxt") : "heute $timetxt";
+}
+
 function MapGetCellContent ($x,$y) {
 	global $gGameID,$gGameDay,$gIconText;
 	$rx = $x-kCityX;
@@ -783,12 +817,11 @@ function MapGetCellContent ($x,$y) {
 		$age = (int)$gGameDay - (int)$o->day;
 		$bToday = ($age == 0);
 		$zombies = $bToday ? $o->zombies : "?"; // GetZombieNumText($x,$y)
-		$timetxt = date("H:i",$o->time);
-		$timetxt2 = (!$bToday) ? (($age > 1) ? "[vor $age Tagen $timetxt] " : "[gestern $timetxt] ") : "[heute $timetxt]";
+		$timetxt = "[".GetAgeText($o->day,$o->time)."]";
 		$old = (!$bToday) ? "_old" : "";
 		$html = "";
 		if ($o->icon >= 0 && $o->icon < kNumIcons)
-				$html .= img("images/map/icon_".$o->icon.$old.".gif","($rx/$ry) ".$zombies." Zombies. <".$gIconText[$o->icon]."> ".$timetxt2." ".$o->txt);
+				$html .= img("images/map/icon_".$o->icon.$old.".gif","($rx/$ry) ".$zombies." Zombies. <".$gIconText[$o->icon]."> ".$timetxt." ".$o->txt);
 		else	$html .= img(TagIconURL($data["tag"]),GetMapToolTip($x,$y));
 		$html .= ($zombies != "?") ? ("<span class='mapcellzombietxt' title='".htmlspecialchars($zombies)." Zombies'>$zombies</span>") : ""; // GetZombieNumText($x,$y)
 		return $html;
@@ -822,7 +855,7 @@ for ($y=0;$y<$h;++$y) {
 		$ry = kCityY-$y;
 		
 		$style = ""; // "bgcolor=green"
-		echo "<td $style $bgimg onclick='MapClickCell($rx,$ry);' title='($rx,$ry)'><span class='mapcell' id='map_".$rx."_".$ry."'>".MapGetCellContent($x,$y)."</span></td>";
+		echo "<td $style $bgimg onclick='MapClickCell($rx,$ry);' title='($rx,$ry)' id='map_".$rx."_".$ry."'>".MapGetCellContent($x,$y)."</td>";
 		//~ echo "<td width=16 height=16>".($data?("nvt=".$data["nvt"].",tag=".$data["tag"]):"")."</td>";
 		//~ echo "<td width=16 height=16>".($data?"x":"")."</td>";
 	}
