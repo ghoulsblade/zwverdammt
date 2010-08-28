@@ -16,7 +16,7 @@ function MyEsc ($txt) { return utf8_decode($txt); } // htmlspecialchars
 function MyEscHTML ($txt) { return utf8_decode($txt); } // htmlspecialchars
 function MyEscHTML2 ($txt) { return htmlspecialchars(($txt)); } // htmlspecialchars
 //~ function MyEsc ($txt) { return strtr($txt,array("Ã?"=>"ß","Ã¼"=>"ü","Ã¶"=>"ö")); } // htmlspecialchars
-function img ($url,$title=false,$special="") { $title = $title?(utf8_decode(htmlspecialchars($title))):false; return "<img $special src='$url' ".($title?("alt='$title' title='$title'"):"")."/>"; }
+function img ($url,$title=false,$special="") { $title = $title?strtr(utf8_decode(htmlentities($title)),array("'"=>'"')):false; return "<img $special src='$url' ".($title?("alt='$title' title='$title'"):"")."/>"; }
 function StripUml($txt) { return preg_replace('/[^a-zA-Z0-9]/','',$txt); }
 
 // note : htmlentities() is identical to htmlspecialchars() in all ways, except with htmlentities(), all characters which have HTML character entity equivalents are translated into these entities. 
@@ -37,19 +37,22 @@ $gIconText = array(
 
 $gShowAvatars = false;
 
-$gSeelenID = isset($_COOKIE["SeelenID"]) ? $_COOKIE["SeelenID"] : false;
+$temp_seelenid = isset($_COOKIE["SeelenID"]) ? $_COOKIE["SeelenID"] : false;
 $gUseSampleData = isset($_REQUEST["sample"]);
-if ($gUseSampleData) $gSeelenID = "abcdefghijklmnopqrstuvwxyz";
+if ($gUseSampleData) $temp_seelenid = "abcdefghijklmnopqrstuvwxyz";
 
 if (isset($_REQUEST["LogOut"])) {
 	setcookie ("SeelenID", "", time() - 3600);
 	//~ echo "logout<br>";
-	$gSeelenID = false;
+	$temp_seelenid = false;
 } elseif (isset($_REQUEST["Login"])) {
 	setcookie ("SeelenID", $_REQUEST["SeelenID"], time() + 30*24*3600);
 	//~ echo "login:".$_REQUEST["SeelenID"]."<br>";
-	$gSeelenID = $_REQUEST["SeelenID"];
+	$temp_seelenid = $_REQUEST["SeelenID"];
 }
+if ($temp_seelenid) $temp_seelenid = preg_replace('/[^a-zA-Z0-9]/','',$temp_seelenid);
+define("kSeelenID",$temp_seelenid); // replaces the old $gSeelenID
+
 
 //~ session_start(); // -> man kann $_SESSION benutzen
 
@@ -59,7 +62,7 @@ function GetLatestXmlStrFromSeelenID	($seelenid)	{ return sqlgetone("SELECT xml 
 define("kSearchGameID",isset($_REQUEST["gameid"])?intval($_REQUEST["gameid"]):false);
 
 if (!kSearchGameID && isset($_REQUEST["ajax"])) {
-	$xmlstr = GetLatestXmlStrFromSeelenID($gSeelenID);
+	$xmlstr = GetLatestXmlStrFromSeelenID(kSeelenID);
 	if (!$xmlstr) exit("failed to load xml");
 	$xml = simplexml_load_string(MyEscXML($xmlstr));
 	MyLoadGlobals();
@@ -80,6 +83,7 @@ function Ajax_AddMapNote () {
 	AddMapNote($rx,$ry,intval($_REQUEST["icon"]),$_REQUEST["zombies"],$_REQUEST["msg"]);
 	echo MapGetCellContent($x,$y);
 }
+
 
 function Ajax_MapCellInfo () { // idMapCellInfo
 	global $gGameID,$gIconText;
@@ -104,15 +108,64 @@ function Ajax_MapCellInfo () { // idMapCellInfo
 		<?php }?>
 		<br>
 		<textarea cols="40" rows="10" name='msg'><?=htmlspecialchars($msg)?></textarea><br>
-		<input class='mapaddsmall_button' type="button" name="BLA" value="speichern" onclick="AddMapNote_Form(this.form)">
+		<?php if (IsOwnGame()) {?>	
+			<table><tr><td valign='top'>
+				<input class='mapaddsmall_button' type="button" name="speichern" value="speichern" onclick="AddMapNote_Form(this.form)">
+			</td><td valign='top'>
+				&nbsp;
+				&nbsp;
+				&nbsp;
+				&nbsp;
+			</td><td valign='top'>
+				<?php /* ***** *****  UTIL : BUDDLER ***** ***** */ ?>
+				<?php $tipp = "title='ankreuzen = LEERES feld = rot'"; ?>
+				<table border=1 cellspacing=0>
+				<tr>
+					<td><?=img(kIconURL_hero_dig,("Helden die den Beruf Buddler wählen können sehen ob umgebende Felder leer sind"))?></td>
+					<td><input type="checkbox" name="dig_north" value="1" <?=$tipp?>></td>
+					<td></td>
+				</tr><tr>
+					<td><input type="checkbox" name="dig_west" value="1" <?=$tipp?>></td>
+					<td><input type="checkbox" name="dig_mid" value="1" <?=$tipp?>></td>
+					<td><input type="checkbox" name="dig_east" value="1" <?=$tipp?>></td>
+				</tr><tr>
+					<td></td>
+					<td><input type="checkbox" name="dig_south" value="1" <?=$tipp?>></td>
+					<td><input class='mapaddsmall_button2' type="button" name="util_digg" value="ok" onclick="Map_Digg(this.form)"></td>
+				</tr></table>
+			</td><td valign='top'>
+				<?php /* ***** *****  UTIL : AUFKLÄRER ***** ***** */ ?>
+				<?php $tipp = "title='Geschätzte Zombieanzahl'"; ?>
+				<table border=1 cellspacing=0>
+				<tr>
+					<td><?=img(kIconURL_hero_scout,("Helden die den Beruf Aufklärer wählen können die Anzahl der Zombies in umgebenden Feldern abschätzen."))?></td>
+					<td><input class='mapaddsmall_input' type="text" size="3" maxlength="5" name="zombie_north" <?=$tipp?> /></td>
+					<td></td>
+				</tr><tr>
+					<td><input class='mapaddsmall_input' type="text" size="3" maxlength="5" name="zombie_west" <?=$tipp?> /></td>
+					<td><input class='mapaddsmall_input' type="text" size="3" maxlength="5" name="zombie_mid" <?=$tipp?> /></td>
+					<td><input class='mapaddsmall_input' type="text" size="3" maxlength="5" name="zombie_east" <?=$tipp?> /></td>
+				</tr><tr>
+					<td></td>
+					<td><input class='mapaddsmall_input' type="text" size="3" maxlength="5" name="zombie_south" <?=$tipp?> /></td>
+					<td><input class='mapaddsmall_button2' type="button" name="util_scout" value="ok" onclick="Map_Scout(this.form)"></td>
+				</tr></table>
+			</td></tr></table>
+		<?php }?>
 	</form>
 	<?php
 }
 
+function GetCurrentGameIDForSeelenID ($seelenid) { return sqlgetone("SELECT gameid FROM xml WHERE ".arr2sql(array("seelenid"=>$seelenid))." ORDER BY id DESC LIMIT 1"); }
+function IsOwnGame () { 
+	global $gGameID; 
+	return GetCurrentGameIDForSeelenID(kSeelenID) == $gGameID;
+}
 
 
 function AddMapNote ($rx,$ry,$icon,$zombies,$txt) { // $rx,$ry relative from city   0, 1
-	global $gGameID,$gSeelenID,$gGameDay;
+	if (!IsOwnGame()) return;
+	global $gGameID,$gGameDay;
 	$o = false;
 	$o->x = $rx;
 	$o->y = $ry;
@@ -122,7 +175,7 @@ function AddMapNote ($rx,$ry,$icon,$zombies,$txt) { // $rx,$ry relative from cit
 	$o->time = time();
 	$o->day = $gGameDay;
 	$o->gameid = $gGameID;
-	$o->seelenid = $gSeelenID;
+	$o->seelenid = kSeelenID;
 	sql("INSERT INTO mapnote SET ".obj2sql($o));
 }
 function GetMapNote ($x,$y) {
@@ -204,6 +257,17 @@ width:450px;
 	// padding:0px;
 	margin:2px 0px 0px 0px; // top,bottom,left,right
 }
+.mapaddsmall_button2 {
+	font-family:Arial,sans-serif;
+	color:#000000;
+	background-color:#F4FFF4;
+	font-size:12px;
+	border: 1px solid #008030;
+	height:20px;
+	width:20px;
+	// padding:0px;
+	margin:2px 0px 0px 0px; // top,bottom,left,right
+}
 a img { border:0px; }
 </style>
 </head>
@@ -242,6 +306,9 @@ function MapClickCell (x,y) {
 	//~ alert("ClickCell"+x+","+y);
 	MyAjaxGet("?ajax=cellinfo&x="+escape(x)+"&y="+escape(y),"idMapCellInfo");
 }
+function MapClickCell_Dummy (x,y) { // IsOwnGame()?"MapClickCell":"MapClickCell_Dummy"
+	document.getElementById("idMapCellInfo").innerHTML = "nur in der eigenen Stadt möglich";
+}
 
 </script>
 <noscript>
@@ -250,8 +317,7 @@ function MapClickCell (x,y) {
 <?php
 
 
-if ($gSeelenID) $gSeelenID = preg_replace('/[^a-zA-Z0-9]/','',$gSeelenID);
-$xmlurl = $gSeelenID ? ("http://www.dieverdammten.de/xml/?k=".urlencode($gSeelenID)) : false;
+$xmlurl = kSeelenID ? ("http://www.dieverdammten.de/xml/?k=".urlencode(kSeelenID)) : false;
 
 // disclaimer
 function MotionTwinNote() {
@@ -263,48 +329,64 @@ function MotionTwinNote() {
 	</div>
 	<?php
 }
-function SeelenID_EntryForm () {
-	global $gSeelenID;
-	if ($gSeelenID) return;
+
+// ***** ***** ***** ***** ***** HEADER
+
+function PrintHeaderSection () { // login,links,disclaimer	
+	global $gGameID,$xmlurl;
+	echo "<table><tr><td valign=top>";
+
+		echo "<table><tr><td>";
+			echo href("http://verdammt.zwischenwelt.org/"); 
+		echo "</td><td>";
+			if (kSeelenID) { ?><form action="" method="POST"><input type="submit" name="LogOut" value="LogOut"></form><?php }
+		echo "</td><td>";
+			$otherCities = sqlgettable("SELECT *,MAX(`day`) as maxday FROM xml GROUP BY gameid ORDER BY id DESC");
+			if (kSeelenID && count($otherCities) > 1) {
+			$mygameid = kSearchGameID ? kSearchGameID : $gGameID;
+			?>
+			<form action='?' method="GET">
+			<select name="gameid">
+			<?php foreach ($otherCities as $city) {?>
+			<option value="<?=$city->gameid?>" <?=($mygameid == $city->gameid)?"selected":""?>><?=htmlspecialchars(utf8_decode($city->cityname))?>(Tag<?=$city->maxday?>)</option>
+			<?php }?>
+			</select>
+			<input type="submit" name="Go" value="Go"></form>
+			</form>
+			<?php
+			}
+		echo "</td></tr></table>";
+
+
+		echo "Author: ".href("mailto:ghoulsblade@schattenkind.net","ghoulsblade@schattenkind.net")." ICQ:107677833 (opensource)<br>\n";
+		echo "Links:".
+			href("http://dvmap.nospace.de/index.php","Karte")." ".
+			href("http://emptycookie.de/index.php?id=".(kSeelenID?kSeelenID:""),"Übersicht")." ".
+			href("http://nobbz.de/wiki/","NobbzWiki")." ".
+			href("http://forum.der-holle.de/","HolleForum")." ".
+			href("http://chat.mibbit.com/?channel=%23dieverdammten&server=irc.mibbit.net","Chat")." ".
+			href("http://www.patamap.com/index.php?page=patastats","PataMap")." ".
+			href("http://github.com/ghoulsblade/zwverdammt","github(sourcecode)")." ". 
+			href($xmlurl,"XmlStream")." ". 
+			"<br>\n";
+			// http://verdammt.mnutz.de/  (baldwin,stadt)
+			// http://asid.dyndns.org/exphelper2 (asid,holleirc)
+			// http://coding-bereich.de/dieverdammten/
+			
+	echo "</td><td valign=top>";
+
+		MotionTwinNote();
+
+	echo "</td></tr></table>";
+}
+
+
+if (!kSeelenID) { 
+	PrintHeaderSection();
 	?> <form action="" method="POST"> Seelen-ID:<input name="SeelenID"> <input type="submit" name="Login" value="Login"> </form> <?php
 	//~ echo href("?sample=1","(Vorschau ohne SeelenID)")."<br>\n";
 	PrintFooter(); exit(0);
 }
-
-
-// ***** ***** ***** ***** ***** HEADER
-
-echo "<table><tr><td valign=top>";
-
-	echo "<table><tr><td>";
-		echo href("http://verdammt.zwischenwelt.org/"); 
-	echo "</td><td>";
-		if ($gSeelenID) { ?><form action="" method="POST"><input type="submit" name="LogOut" value="LogOut"></form><?php }
-	echo "</td></tr></table>";
-
-
-	echo "Author: ".href("mailto:ghoulsblade@schattenkind.net","ghoulsblade@schattenkind.net")." ICQ:107677833 (opensource)<br>\n";
-	echo "Links:".
-		href("http://dvmap.nospace.de/index.php","Karte")." ".
-		href("http://emptycookie.de/index.php?id=".($gSeelenID?$gSeelenID:""),"Übersicht")." ".
-		href("http://nobbz.de/wiki/","NobbzWiki")." ".
-		href("http://forum.der-holle.de/","HolleForum")." ".
-		href("http://chat.mibbit.com/?channel=%23dieverdammten&server=irc.mibbit.net","Chat")." ".
-		href("http://www.patamap.com/index.php?page=patastats","PataMap")." ".
-		href("http://github.com/ghoulsblade/zwverdammt","github(sourcecode)")." ". 
-		href($xmlurl,"XmlStream")." ". 
-		"<br>\n";
-		// http://verdammt.mnutz.de/  (baldwin,stadt)
-		// http://asid.dyndns.org/exphelper2 (asid,holleirc)
-		// http://coding-bereich.de/dieverdammten/
-		
-echo "</td><td valign=top>";
-
-	MotionTwinNote();
-
-echo "</td></tr></table>";
-
-SeelenID_EntryForm();
 
 
 // ***** ***** ***** ***** ***** Load XML
@@ -331,7 +413,7 @@ if (kSearchGameID) {
 	@$xml = simplexml_load_string(MyEscXML($xmlstr));
 
 	if (!$xml->data[0]->city[0]["city"] || $xml->status[0]["open"] == "0") {
-		$xmlstr = GetLatestXmlStrFromSeelenID($gSeelenID);
+		$xmlstr = GetLatestXmlStrFromSeelenID(kSeelenID);
 		echo "<h1>Webseite down, Zombie-Angriff im Gange!</h1>\n";
 		if ($xmlstr) {
 			echo "(lade letzten stand)<br>\n";
@@ -369,9 +451,11 @@ function Map ($x,$y) { global $gMap; return isset($gMap["$x,$y"])?$gMap["$x,$y"]
 function GetDeathTypeIconHTML ($dtype,$txt="") { 
 	switch ($dtype) {
 		case kDeathType_Aussenwelt:		return img(kIconURL_aussenwelt		,"Aussenwelt. ".$txt); break;
+		case kDeathType_Erhaengt:		return img(kIconURL_death			,("Erhaengt. ").$txt); break;
 		case kDeathType_Infektion:		return img(kIconURL_infektion		,"Infektion. ".$txt); break;
 		case kDeathType_Dehydriert:		return img(kIconURL_dehydration		,"Dehydriert. ".$txt); break;
 		case kDeathType_ZombieAngriff:	return img(kIconURL_ZombieAngriff	,"ZombieAngriff. ".$txt); break;
+		case kDeathType_AccountDeleted:	return img(kIconURL_death			,("Account geloescht. ").$txt); break;
 	}
 	return img(kIconURL_death,"Unbekannt[".intval($dtype)."]. ".$txt);
 }
@@ -414,9 +498,11 @@ function MyLoadGlobals () {
 	define("kIconURL_ZombieAngriff"	, "http://data.dieverdammten.de/gfx/forum/smiley/h_zhead.gif");
 	
 	define("kDeathType_Dehydriert",1);
+	define("kDeathType_Erhaengt",4);
 	define("kDeathType_Aussenwelt",5);
 	define("kDeathType_ZombieAngriff",6);
 	define("kDeathType_Infektion",8);
+	define("kDeathType_AccountDeleted",10);
 	
 	$def = (int)($city->defense[0]["total"]);
 	$gGameDay = (int)$xml->headers[0]->game[0]["days"];
@@ -468,10 +554,11 @@ function MyLoadGlobals () {
 
 MyLoadGlobals();
 
+PrintHeaderSection(); // late, so full xml is available
 
 if ($gStoreXML) {
 	$o = false;
-	$o->seelenid = (string)$gSeelenID;
+	$o->seelenid = (string)kSeelenID;
 	$o->time = time();
 	$o->gameid = $gGameID;
 	$o->cityname = (string)$city["city"];
@@ -539,7 +626,7 @@ echo "<table border=1 cellspacing=0><tr><td valign=top>\n";
 
 // ***** ***** ***** ***** ***** STADT INFOS 
 
-echo "Stadt=".utf8_decode($city["city"]);
+echo "Stadt=<b>".utf8_decode($city["city"])."</b>";
 echo " Tag=".$gGameDay;
 echo " ".img($icon_url."small_water.gif","Wasser").":".$city["water"];
 echo " &Uuml;berlebende=".$buerger_alive;
@@ -559,13 +646,13 @@ if (!kZombieEstimationQualityMaxxed) echo "<b>Hilf mit die Schätzung im ".LinkBu
 
 if (CheckBuilding("Werkstatt",0,"wird benötigt um BaumStümpfe, MetallTrümmer und viele andere Sachen umzuwandeln","die")) {
 	CheckBuilding("Wachturm",0,"wird benötigt um den Forschungsturm zu bauen","den");
-	CheckBuilding("Forschungsturm",2,"sorgt dafür dass sich leere Felder, auf denen man sonst nur BaumStümpfe und MetallTrümmer findet wieder regenerieren","den");
+	CheckBuilding("Forschungsturm",2,"sorgt dafür dass sich leere Felder,<br> auf denen man sonst nur BaumStümpfe und MetallTrümmer findet wieder regenerieren","den");
 }
 if ($gGameDay == 1) { echo ("bau dein Feldbett zu einem Zelt aus, aber NICHT zu einer Baracke, Holzbretter werden dringend für die Werkstatt benötigt")."<br>\n"; }
 
 
 $f = GetBuildingLevel("Forschungsturm");
-$leer_regen = array(12,25,37,49,61,73,85,99,"??");
+$leer_regen = array(0,25,37,49,61,73,85,99,"??");
 $p0 = $leer_regen[$f+1];
 $p1 = $leer_regen[$f+2];
 echo LinkBuilding("Forschungsturm")." ".(($f >= 0)?"Stufe $f":"nicht gebaut")." -&gt; Chance das ein leeres Feld sich regeneriert : ".$p0."% (nächste:".$p1."%)<br>\n";
@@ -813,6 +900,7 @@ function MapGetCellContent ($x,$y) {
 	$ry = kCityY-$y;
 	$o = GetMapNote($rx,$ry);
 	$data = Map($x,$y);
+	$r = $data->building[0];
 	if ($o) {
 		$age = (int)$gGameDay - (int)$o->day;
 		$bToday = ($age == 0);
@@ -824,9 +912,11 @@ function MapGetCellContent ($x,$y) {
 				$html .= img("images/map/icon_".$o->icon.$old.".gif","($rx/$ry) ".$zombies." Zombies. <".$gIconText[$o->icon]."> ".$timetxt." ".$o->txt);
 		else	$html .= img(TagIconURL($data["tag"]),GetMapToolTip($x,$y));
 		$html .= ($zombies != "?") ? ("<span class='mapcellzombietxt' title='".htmlspecialchars($zombies)." Zombies'>$zombies</span>") : ""; // GetZombieNumText($x,$y)
+		if ($r) $html .= img("images/map/iconmark_ruin.gif",($r["name"]));
 		return $html;
 	}
 	if ($data["tag"]) return img(TagIconURL($data["tag"]),GetMapToolTip($x,$y));
+	if ($r) $html .= img("images/map/iconmark_ruin.gif",($r["name"]));
 	return "";
 }
 
@@ -855,7 +945,8 @@ for ($y=0;$y<$h;++$y) {
 		$ry = kCityY-$y;
 		
 		$style = ""; // "bgcolor=green"
-		echo "<td $style $bgimg onclick='MapClickCell($rx,$ry);' title='($rx,$ry)' id='map_".$rx."_".$ry."'>".MapGetCellContent($x,$y)."</td>";
+		$fname = IsOwnGame()?"MapClickCell":"MapClickCell_Dummy";
+		echo "<td $style $bgimg onclick='$fname($rx,$ry);' title='($rx,$ry)' id='map_".$rx."_".$ry."'>".MapGetCellContent($x,$y)."</td>";
 		//~ echo "<td width=16 height=16>".($data?("nvt=".$data["nvt"].",tag=".$data["tag"]):"")."</td>";
 		//~ echo "<td width=16 height=16>".($data?"x":"")."</td>";
 	}
