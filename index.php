@@ -175,6 +175,8 @@ function MapGetCellContentRelPos ($rx,$ry) { return MapGetCellContent(kCityX + $
 
 function Ajax_MapCellInfo ($rx,$ry) { // idMapCellInfo
 	global $gGameID,$gIconText;
+	
+	
 	$lastnote = GetMapNote($rx,$ry);
 	$icon = $lastnote ? intval($lastnote->icon) : kIconID_Notiz;
 	$msg = $lastnote ? $lastnote->txt : "";
@@ -194,6 +196,9 @@ function Ajax_MapCellInfo ($rx,$ry) { // idMapCellInfo
 		<?php }?>
 		<br>
 		<textarea cols="40" rows="10" name='msg'><?=htmlspecialchars($msg)?></textarea><br>
+		<?php if (!IsOwnGame()) {?>
+		(kann nur in der eigenen Stadt bearbeitet werden)
+		<?php }?>	
 		<?php if (IsOwnGame()) {?>	
 			<table><tr><td valign='top'>
 				<input class='mapaddsmall_button' type="button" name="speichern" value="speichern" onclick="AddMapNote_Form(this.form)">
@@ -408,7 +413,8 @@ function MapClickCell (x,y) {
 	MyAjaxGet("?ajax=cellinfo&x="+escape(x)+"&y="+escape(y),"idMapCellInfo");
 }
 function MapClickCell_Dummy (x,y) { // IsOwnGame()?"MapClickCell":"MapClickCell_Dummy"
-	document.getElementById("idMapCellInfo").innerHTML = "nur in der eigenen Stadt möglich";
+	MyAjaxGet("?ajax=cellinfo&x="+escape(x)+"&y="+escape(y)+"&gameid="+escape(<?=$gGameID?>),"idMapCellInfo");
+	//~ document.getElementById("idMapCellInfo").innerHTML = "nur in der eigenen Stadt möglich";
 }
 
 function ShowHide (id) {
@@ -472,7 +478,7 @@ function PrintHeaderSection () { // login,links,disclaimer
 		echo "</td></tr></table>";
 
 
-		echo "Author: ".href("mailto:ghoulsblade@schattenkind.net","ghoulsblade@schattenkind.net")." ICQ:107677833 (opensource)".
+		echo "Author: ".href("mailto:ghoulsblade@schattenkind.net","ghoulsblade@schattenkind.net")." ICQ:107677833 (opensource) ".
 			href("http://forum.der-holle.de/viewtopic.php?f=42&t=106","ForenThread").
 			"<br>\n";
 		echo "Links:".
@@ -998,12 +1004,7 @@ echo "</td></tr></table>\n";
 
 
 function TagIconURL ($tagid) { return "http://data.dieverdammten.de/gfx/icons/tag_".((int)$tagid).".gif"; }
-function GetMapToolTip ($x,$y) { 
-	$txt = "";
-	$txt .= "($x,$y)";
-	if ($x != kCityX || $y != kCityY) $txt .= " ".implode(",",GetBuergerNamenOnAbsPos($x,$y));
-	return $txt;
-}
+
 
 
 
@@ -1032,9 +1033,32 @@ function GetBuergerNamenOnAbsPos($x,$y) {
 }
 function GetAnzahlBuergerOnAbsPos($x,$y) { global $gBuergerOnPos; return count($gBuergerOnPos["$x,$y"]); }
 
+function GetMapToolTip ($x,$y) {
+	global $gGameDay,$gIconText;
+	$txt = "";
+	$rx = $x - kCityX;
+	$ry = kCityY - $y;
+	$txt .= "($rx,$ry)";
+	if ($x != kCityX || $y != kCityY) { 
+		$txt .= " ".implode(",",GetBuergerNamenOnAbsPos($x,$y));
+		$o = GetMapNote($rx,$ry);
+		if ($o) {
+			$age = (int)$gGameDay - (int)$o->day;
+			$bToday = ($age == 0);
+			$zombies = $bToday ? trim($o->zombies) : false; // GetZombieNumText($x,$y)
+			if ($zombies == "?" || $zombies == "") $zombies = false;
+			$txt .= " ";
+			if ($zombies) $txt .= " ".$zombies." Zombies.";
+			if ($o->icon >= 0) $txt .= " <".$gIconText[$o->icon].">";
+			$txt .= " [".GetAgeText($o->day,$o->time)."]";
+			$txt .= " ".$o->txt;
+		}
+	}
+	return $txt;
+}
 
 function MapGetCellContent ($x,$y,$mode=kMapMode_Marker) { // kMapMode_Marker,kMapMode_Buerger
-	global $gGameID,$gGameDay,$gIconText;
+	global $gGameID,$gGameDay;
 	$rx = $x-kCityX;
 	$ry = kCityY-$y;
 	$o = GetMapNote($rx,$ry);
@@ -1048,14 +1072,14 @@ function MapGetCellContent ($x,$y,$mode=kMapMode_Marker) { // kMapMode_Marker,kM
 		if ($o) {
 			$age = (int)$gGameDay - (int)$o->day;
 			$bToday = ($age == 0);
-			$zombies = $bToday ? $o->zombies : "?"; // GetZombieNumText($x,$y)
-			$timetxt = "[".GetAgeText($o->day,$o->time)."]";
+			$zombies = $bToday ? $o->zombies : false; // GetZombieNumText($x,$y)
+			if ($zombies == "?" || $zombies == "") $zombies = false;
 			$old = (!$bToday) ? "_old" : "";
 			if ($o->icon >= 0 && $o->icon < kNumIcons)
-				$html .= img("images/map/icon_".$o->icon.$old.".gif","($rx/$ry) ".$zombies." Zombies. <".$gIconText[$o->icon]."> ".$timetxt." ".$o->txt);
+				$html .= img("images/map/icon_".$o->icon.$old.".gif",$tipp);
 			elseif ($ingametag) 
 				$html .= img(TagIconURL($ingametag),$tipp);
-			$html .= ($zombies != "?") ? ("<span class='mapcellzombietxt' title='".htmlspecialchars($zombies)." Zombies'>$zombies</span>") : ""; // GetZombieNumText($x,$y)
+			if ($zombies) $html .= ("<span class='mapcellzombietxt' title='".htmlspecialchars($zombies)." Zombies'>$zombies</span>"); // GetZombieNumText($x,$y)
 			//~ if ($r) $html .= img("images/map/iconmark_ruin.gif",($r["name"]));
 		} else {
 			if ($ingametag) $html .= img(TagIconURL($ingametag),$tipp);
