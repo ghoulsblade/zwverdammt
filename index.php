@@ -97,8 +97,8 @@ define("kMapMode_Marker"		,1);
 define("kMapMode_Buerger"		,2);
 define("kMapMode_InGameTags"	,3);
 
-if (!kSearchGameID && isset($_REQUEST["ajax"])) {
-	$xmlstr = GetLatestXmlStrFromSeelenID(kSeelenID);
+if (isset($_REQUEST["ajax"])) {
+	$xmlstr = kSearchGameID ? GetLatestXmlStrFromGameID(kSearchGameID) : GetLatestXmlStrFromSeelenID(kSeelenID);
 	if (!$xmlstr) exit("failed to load xml");
 	$xml = simplexml_load_string(MyEscXML($xmlstr));
 	MyLoadGlobals();
@@ -363,6 +363,8 @@ a img { border:0px; }
 </style>
 </head>
 <body>
+<?php
+function PrintJavaScriptBlock () { global $gGameID;?>
 <script type="text/javascript">
 function RadioValue(rObj,vDefault) {
 	for (var i=0; i<rObj.length; i++) if (rObj[i].checked) return rObj[i].value;
@@ -423,6 +425,8 @@ function SetMapMode (d) { MyAjaxGet("?ajax=mapmode&mapmode="+escape(d)+"&gameid=
 (!javascript needed!)
 </noscript>
 <?php
+}
+
 
 
 $xmlurl = kSeelenID ? ("http://www.dieverdammten.de/xml/?k=".urlencode(kSeelenID)) : false;
@@ -502,6 +506,7 @@ if (!kSeelenID) {
 
 // ***** ***** ***** ***** ***** Load XML
 
+$temp_loadinfotxt = "";
 $gStoreXML = true;
 $gDemo = false;
 $xmlurl_sample = "sample.xml";
@@ -518,18 +523,18 @@ if (kSearchGameID) {
 		$gDemo = true;
 		$gStoreXML = false;
 		$xmlstr = GetLatestXmlStrFromSeelenID(kMySQL_SampleSoulID);
-		//~ if ($xmlstr) echo "sample load from db OK<br>\n"; else echo "sample load from db failed<br>\n";
+		//~ if ($xmlstr) $temp_loadinfotxt .= "sample load from db OK<br>\n"; else $temp_loadinfotxt .= "sample load from db failed<br>\n";
 	}
 	if (!$xmlstr) $xmlstr = file_get_contents($xmlurl);
 	@$xml = simplexml_load_string(MyEscXML($xmlstr));
 
 	if (!$xml->data[0]->city[0]["city"] || $xml->status[0]["open"] == "0") {
 		$xmlstr = GetLatestXmlStrFromSeelenID(kSeelenID);
-		echo "<h1>Webseite down, Zombie-Angriff im Gange!</h1>\n";
+		$temp_loadinfotxt .= "<h1>Webseite down, Zombie-Angriff im Gange!</h1>\n";
 		if ($xmlstr) {
-			echo "(lade letzten stand)<br>\n";
+			$temp_loadinfotxt .= "(lade letzten stand)<br>\n";
 		} else {
-			echo "(lade dummy/demo daten)<br>\n";
+			$temp_loadinfotxt .= "(lade dummy/demo daten)<br>\n";
 			$xmlurl = $xmlurl_sample;
 			$xmlstr = file_get_contents($xmlurl);
 		}
@@ -537,6 +542,7 @@ if (kSearchGameID) {
 		$gStoreXML = false;
 	}
 }
+
 
 /*
 if file_get_contents is too slow, try this
@@ -676,6 +682,9 @@ function MyLoadGlobals () {
 }
 
 MyLoadGlobals();
+
+PrintJavaScriptBlock();
+echo $temp_loadinfotxt;
 
 PrintHeaderSection(); // late, so full xml is available
 
