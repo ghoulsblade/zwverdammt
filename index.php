@@ -1,6 +1,7 @@
 <?php
 // uebersicht und karte fuer das browsergame www.dieverdammten.de
 // note : xml api via http://www.php.net/manual/de/book.simplexml.php
+// note : Tagebuch+GesamtFazit Geniales Gehöft (rang1) http://forum.der-holle.de/viewtopic.php?f=8&t=55&start=30
 /*
 Copyright (c) 2010 <copyright holders>
 
@@ -961,7 +962,7 @@ $gCatTrans = array("Rsc"=>"Rohst.",
 $cats2 = array();
 foreach ($gCatTrans as $k => $v) $cats2[$k] = isset($cats[$k])?$cats[$k]:array();
 foreach ($cats as $k => $v) if (!isset($gCatTrans[$k])) $cats2[$k] = $v;
-foreach ($cats2 as $k => $arr) echo "<tr><th>".(isset($gCatTrans[$k])?$gCatTrans[$k]:$k).":</th><td align=left>".implode(" &nbsp; ",$arr)."</td></tr>\n";
+foreach ($cats2 as $k => $arr) echo "<tr><th>".(isset($gCatTrans[$k])?$gCatTrans[$k]:$k).":</th><td align=left>\n ".implode(" &nbsp;\n ",$arr)."\n</td></tr>\n";
 echo "</table>\n";
 
 
