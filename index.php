@@ -280,7 +280,7 @@ function PrintFooter () { ?></body></html><?php }
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
 <html>
 <head>
-<title>Verdammt</title>
+<title>ZWMap</title>
 <style type="text/css">
 body {
 font-family:Arial;
@@ -416,7 +416,7 @@ function ShowHide (id) {
 	else	e.style.display = "inline";
 }
 
-function SetMapMode (d) { MyAjaxGet("?ajax=mapmode&mapmode="+escape(d),"idMapContainer"); }
+function SetMapMode (d) { MyAjaxGet("?ajax=mapmode&mapmode="+escape(d)+"&gameid="+escape(<?=$gGameID?>),"idMapContainer"); }
 
 </script>
 <noscript>
@@ -467,7 +467,9 @@ function PrintHeaderSection () { // login,links,disclaimer
 		echo "</td></tr></table>";
 
 
-		echo "Author: ".href("mailto:ghoulsblade@schattenkind.net","ghoulsblade@schattenkind.net")." ICQ:107677833 (opensource)<br>\n";
+		echo "Author: ".href("mailto:ghoulsblade@schattenkind.net","ghoulsblade@schattenkind.net")." ICQ:107677833 (opensource)".
+			href("http://forum.der-holle.de/viewtopic.php?f=42&t=106","ForenThread").
+			"<br>\n";
 		echo "Links:".
 			href("http://dvmap.nospace.de/index.php","Karte")." ".
 			href("http://emptycookie.de/index.php?id=".(kSeelenID?kSeelenID:""),"Übersicht")." ".
