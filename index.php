@@ -16,12 +16,20 @@ function MyEsc ($txt) { return utf8_decode($txt); } // htmlspecialchars
 function MyEscHTML ($txt) { return utf8_decode($txt); } // htmlspecialchars
 function MyEscHTML2 ($txt) { return htmlspecialchars(($txt)); } // htmlspecialchars
 //~ function MyEsc ($txt) { return strtr($txt,array("Ã?"=>"ß","Ã¼"=>"ü","Ã¶"=>"ö")); } // htmlspecialchars
-function img ($url,$title=false,$special="") { $title = $title?strtr(utf8_decode(htmlentities($title)),array("'"=>'"')):false; return "<img $special src='$url' ".($title?("alt='$title' title='$title'"):"")."/>"; }
+function img ($url,$title=false,$special="") { $title = $title?strtr((htmlentities(utf8_decode($title))),array("'"=>'"')):false; return "<img $special src='$url' ".($title?("alt='$title' title='$title'"):"")."/>"; }
 function StripUml($txt) { return preg_replace('/[^a-zA-Z0-9]/','',$txt); }
+
+function WikiName ($name) { return strtr((string)$name,array("ß"=>"ss"," "=>"_")); }
+function LinkWiki		($name,$html=false) { return href("http://nobbz.de/wiki/index.php/".urlencode(WikiName($name)),$html?$html:($name)); }
+function LinkRuin		($name,$html=false) { return LinkWiki($name,$html); }
+function LinkBuilding	($name,$html=false) { return LinkWiki($name,$html); }
+function LinkItem		($name,$html=false) { return LinkWiki($name,$html); }
 
 // note : htmlentities() is identical to htmlspecialchars() in all ways, except with htmlentities(), all characters which have HTML character entity equivalents are translated into these entities. 
 
 define("kNumIcons",7);
+define("kIconID_DigLeer",0);
+define("kIconID_DigVoll",1);
 define("kIconID_Notiz",6);
 
 
@@ -66,29 +74,75 @@ if (!kSearchGameID && isset($_REQUEST["ajax"])) {
 	if (!$xmlstr) exit("failed to load xml");
 	$xml = simplexml_load_string(MyEscXML($xmlstr));
 	MyLoadGlobals();
+	$rx = intval($_REQUEST["x"]);
+	$ry = intval($_REQUEST["y"]);
 	switch ($_REQUEST["ajax"]) {
-		case "addmapnote":	Ajax_AddMapNote(); break;
-		case "cellinfo":	Ajax_MapCellInfo(); break;
+		case "addmapnote":		Ajax_AddMapNote($rx,$ry); break;
+		case "cellinfo":		Ajax_MapCellInfo($rx,$ry); break;
+		case "maputil_digg":	Ajax_MapUtil_Digg($rx,$ry); break;
+		case "maputil_scout":	Ajax_MapUtil_Scout($rx,$ry); break;
 		default:			echo "unknown request ".$_REQUEST["ajax"]; break;
 	}
 	exit();
 }
 
-function Ajax_AddMapNote () {
-	$rx = intval($_REQUEST["x"]);
-	$ry = intval($_REQUEST["y"]);
-	$x = kCityX + $rx;
-	$y = kCityY - $ry;
-	//~ echo "Ajax_AddMapNote z=".$_REQUEST["zombies"]."<br>\n";
-	AddMapNote($rx,$ry,intval($_REQUEST["icon"]),$_REQUEST["zombies"],$_REQUEST["msg"]);
-	echo MapGetCellContent($x,$y);
+function IsUnexploredRelPos ($rx,$ry) {
+	$data = Map($rx + kCityX,kCityY - $ry);
+	if ($data) return false;
+	return true;
+}
+function MapSetIconRelPos ($rx,$ry,$icon) {
+	if ($rx == 0 && $ry == 0) return; // no mark on city
+	if (IsUnexploredRelPos($rx,$ry)) return; // no mark on unexplored
+	$o = GetMapNoteRelPos($rx,$ry);
+	AddMapNote($rx,$ry,$icon,$o?$o->zombies:"",$o?$o->txt:"");
+}
+function MapSetZombieRelPos ($rx,$ry,$zombies) {
+	if ($rx == 0 && $ry == 0) return; // no mark on city
+	if (IsUnexploredRelPos($rx,$ry)) return; // no mark on unexplored
+	$o = GetMapNoteRelPos($rx,$ry);
+	AddMapNote($rx,$ry,$o?$o->icon:-1,$zombies,$o?$o->txt:"");
+}
+function Ajax_MapUtil_Digg ($rx,$ry) {
+	$n = intval($_REQUEST["dig_north"]);
+	$w = intval($_REQUEST["dig_west"]);
+	$m = intval($_REQUEST["dig_mid"]);
+	$e = intval($_REQUEST["dig_east"]);
+	$s = intval($_REQUEST["dig_south"]);
+	//~ echo "$n,$w,$m,$e,$s<br>\n";
+	MapSetIconRelPos($rx  ,$ry+1,$n?kIconID_DigLeer:kIconID_DigVoll);
+	MapSetIconRelPos($rx-1,$ry  ,$w?kIconID_DigLeer:kIconID_DigVoll);
+	MapSetIconRelPos($rx  ,$ry  ,$m?kIconID_DigLeer:kIconID_DigVoll);
+	MapSetIconRelPos($rx+1,$ry  ,$e?kIconID_DigLeer:kIconID_DigVoll);
+	MapSetIconRelPos($rx  ,$ry-1,$s?kIconID_DigLeer:kIconID_DigVoll);
+	Ajax_RenderMap();
+}
+function Ajax_MapUtil_Scout ($rx,$ry) {
+	$n = ($_REQUEST["zombie_north"]);
+	$w = ($_REQUEST["zombie_west"]);
+	$m = ($_REQUEST["zombie_mid"]);
+	$e = ($_REQUEST["zombie_east"]);
+	$s = ($_REQUEST["zombie_south"]);
+	//~ echo "$n,$w,$m,$e,$s<br>\n";
+	MapSetZombieRelPos($rx  ,$ry+1,$n);
+	MapSetZombieRelPos($rx-1,$ry  ,$w);
+	MapSetZombieRelPos($rx  ,$ry  ,$m);
+	MapSetZombieRelPos($rx+1,$ry  ,$e);
+	MapSetZombieRelPos($rx  ,$ry-1,$s);
+	Ajax_RenderMap();
 }
 
+function Ajax_RenderMap () { RenderMapBlock(); }
 
-function Ajax_MapCellInfo () { // idMapCellInfo
+function Ajax_AddMapNote ($rx,$ry) {
+	AddMapNote($rx,$ry,intval($_REQUEST["icon"]),$_REQUEST["zombies"],$_REQUEST["msg"]);
+	echo MapGetCellContentRelPos($rx,$ry);
+}
+
+function MapGetCellContentRelPos ($rx,$ry) { return MapGetCellContent(kCityX + $rx,kCityY - $ry); }
+
+function Ajax_MapCellInfo ($rx,$ry) { // idMapCellInfo
 	global $gGameID,$gIconText;
-	$rx = intval($_REQUEST["x"]);
-	$ry = intval($_REQUEST["y"]);
 	$lastnote = GetMapNote($rx,$ry);
 	$icon = $lastnote ? intval($lastnote->icon) : kIconID_Notiz;
 	$msg = $lastnote ? $lastnote->txt : "";
@@ -131,7 +185,7 @@ function Ajax_MapCellInfo () { // idMapCellInfo
 				</tr><tr>
 					<td></td>
 					<td><input type="checkbox" name="dig_south" value="1" <?=$tipp?>></td>
-					<td><input class='mapaddsmall_button2' type="button" name="util_digg" value="ok" onclick="Map_Digg(this.form)"></td>
+					<td><input class='mapaddsmall_button2' type="button" name="util_digg" value="ok" onclick="Form_Map_Digg(this.form)"></td>
 				</tr></table>
 			</td><td valign='top'>
 				<?php /* ***** *****  UTIL : AUFKLÄRER ***** ***** */ ?>
@@ -148,7 +202,7 @@ function Ajax_MapCellInfo () { // idMapCellInfo
 				</tr><tr>
 					<td></td>
 					<td><input class='mapaddsmall_input' type="text" size="3" maxlength="5" name="zombie_south" <?=$tipp?> /></td>
-					<td><input class='mapaddsmall_button2' type="button" name="util_scout" value="ok" onclick="Map_Scout(this.form)"></td>
+					<td><input class='mapaddsmall_button2' type="button" name="util_scout" value="ok" onclick="Form_Map_Scout(this.form)"></td>
 				</tr></table>
 			</td></tr></table>
 		<?php }?>
@@ -178,6 +232,7 @@ function AddMapNote ($rx,$ry,$icon,$zombies,$txt) { // $rx,$ry relative from cit
 	$o->seelenid = kSeelenID;
 	sql("INSERT INTO mapnote SET ".obj2sql($o));
 }
+function GetMapNoteRelPos ($rx,$ry) { return GetMapNote($rx,$ry); }
 function GetMapNote ($x,$y) {
 	global $gGameID; 
 	//~ echo "SELECT * FROM mapnote WHERE ".arr2sql(array("gameid"=>$gGameID,"x"=>$x,"y"=>$y)," AND ");
@@ -226,6 +281,11 @@ width:450px;
 }
 .bframe {
 	border:1px solid black;
+}
+.iconmark {
+	position:relative;
+	left:0px;
+	top:0px;
 }
 .mapaddsmall_input {
 	font-family:Arial,sans-serif;
@@ -301,6 +361,13 @@ function AddMapNote_Form (form) {
 	var sQuery = "?ajax=addmapnote&x="+escape(""+x)+"&y="+escape(""+y)+"&zombies="+escape(""+z)+"&icon="+RadioValue(form.icon,-1)+"&msg="+escape(form.msg.value);
 	MyAjaxGet(sQuery,"map_"+x+"_"+y); // whole map would be idMapContainer
 }
+<?php function BuildJSUrl ($prefix,$arr_val,$arr_check=array()) { $url = '"'.$prefix; 
+	foreach ($arr_val as $n) $url .= '&'.$n.'="+escape(""+(form.'.$n.'.value'.'))+"'; 
+	foreach ($arr_check as $n) $url .= '&'.$n.'="+escape(""+(form.'.$n.'.checked?1:0'.'))+"'; 
+	return $url.'"'; 
+} ?>
+function Form_Map_Digg (form) { MyAjaxGet(<?=BuildJSUrl("?ajax=maputil_digg",array("x","y"),array("dig_north","dig_west","dig_mid","dig_east","dig_south"))?>,"idMapContainer"); }
+function Form_Map_Scout (form) { MyAjaxGet(<?=BuildJSUrl("?ajax=maputil_scout",array("x","y","zombie_north","zombie_west","zombie_mid","zombie_east","zombie_south"))?>,"idMapContainer"); }
 
 function MapClickCell (x,y) {
 	//~ alert("ClickCell"+x+","+y);
@@ -309,6 +376,7 @@ function MapClickCell (x,y) {
 function MapClickCell_Dummy (x,y) { // IsOwnGame()?"MapClickCell":"MapClickCell_Dummy"
 	document.getElementById("idMapCellInfo").innerHTML = "nur in der eigenen Stadt möglich";
 }
+
 
 </script>
 <noscript>
@@ -451,6 +519,7 @@ function Map ($x,$y) { global $gMap; return isset($gMap["$x,$y"])?$gMap["$x,$y"]
 function GetDeathTypeIconHTML ($dtype,$txt="") { 
 	switch ($dtype) {
 		case kDeathType_Aussenwelt:		return img(kIconURL_aussenwelt		,"Aussenwelt. ".$txt); break;
+		case kDeathType_Zyanid:			return img(kIconURL_death			,"Zyanid. ".$txt); break;
 		case kDeathType_Erhaengt:		return img(kIconURL_death			,("Erhaengt. ").$txt); break;
 		case kDeathType_Infektion:		return img(kIconURL_infektion		,"Infektion. ".$txt); break;
 		case kDeathType_Dehydriert:		return img(kIconURL_dehydration		,"Dehydriert. ".$txt); break;
@@ -498,6 +567,7 @@ function MyLoadGlobals () {
 	define("kIconURL_ZombieAngriff"	, "http://data.dieverdammten.de/gfx/forum/smiley/h_zhead.gif");
 	
 	define("kDeathType_Dehydriert",1);
+	define("kDeathType_Zyanid",3);
 	define("kDeathType_Erhaengt",4);
 	define("kDeathType_Aussenwelt",5);
 	define("kDeathType_ZombieAngriff",6);
@@ -576,11 +646,6 @@ function CheckBuilding ($bname,$minlevel,$text,$pre="den/die") {
 	if (GetBuildingLevel($bname) < $minlevel) { echo "Hilf mit ".$pre." <b>$bname</b> als <b>Verbesserung des Tages</b> zu wählen: ".$text."<br>\n"; return false; }
 	return true;
 }
-function WikiName ($name) { return strtr((string)$name,array("ß"=>"ss"," "=>"_")); }
-function LinkWiki		($name,$html=false) { return href("http://nobbz.de/wiki/index.php/".urlencode(WikiName($name)),$html?$html:MyEscHTML($name)); }
-function LinkRuin		($name,$html=false) { return LinkWiki($name,$html); }
-function LinkBuilding	($name,$html=false) { return LinkWiki($name,$html); }
-function LinkItem		($name,$html=false) { return LinkWiki($name,$html); }
 
 
 function GetBuildingLevel ($bname) { // -1= not build, 0=built but no upgrade, >1 = upgrade level 
@@ -741,7 +806,7 @@ echo href("http://nobbz.de/wiki/index.php/Ruinen","Ruinen (".count($gRuinen)."/1
 foreach ($gRuinen as $r) {
 	$x = $r["x"] - kCityX;
 	$y = kCityY - $r["y"];
-	echo "($x/$y)[".(abs($x)+abs($y))."AP]".LinkRuin($r["node"]["name"])."<br>\n";
+	echo "($x/$y)[".(abs($x)+abs($y))."AP]".LinkRuin(utf8_decode($r["node"]["name"]))."<br>\n";
 }
 
 // ***** ***** ***** ***** ***** TOTE
@@ -765,7 +830,7 @@ foreach ($arr as $cadaver) {
 	$cleanup_txt = ($cleanup["user"] != "")?("entsorgt von ".htmlspecialchars($cleanup["user"])." : ".$cleanup["type"]):false;
 	
 	echo "<td>".GetDeathTypeIconHTML($dtype,$cleanup_txt?$cleanup_txt:"").($bMussEntsorgtWerden?img(kIconURL_warning,"LEICHE ENTSORGEN! SONST STEHT SIE ALS ZOMBIE WIEDER AUF!"):"")."</td>";
-	echo "<td>".(($msg && $msg != "")?img(kIconURL_msg,utf8_decode($msg)):"")."</td>";
+	echo "<td>".(($msg && $msg != "")?img(kIconURL_msg,($msg)):"")."</td>";
 	echo "<td>".MyEscHTML($cadaver["name"])."</td>";
 	echo "<td>Tag".$cadaver["day"]."</td>";
 	echo "</tr>\n";
@@ -783,14 +848,14 @@ echo "</td><td valign=top>\n";
 echo href("http://nobbz.de/wiki/index.php/Verbesserung_des_Tages","Verbesserungen:").":<br>\n";
 $icon_upgrade_url = "http://data.dieverdammten.de/gfx/icons/item_electro.gif";
 foreach ($xml->data[0]->upgrades[0]->up as $upgrade) {
-	echo img($icon_upgrade_url,"Verbesserung").$upgrade["level"]." ".LinkBuilding($upgrade["name"])."<br>\n"; // $upgrade["buildingId"]
+	echo img($icon_upgrade_url,"Verbesserung").$upgrade["level"]." ".LinkBuilding(utf8_decode($upgrade["name"]))."<br>\n"; // $upgrade["buildingId"]
 }
 
 echo "<br>\n";
 // ***** ***** ***** ***** ***** GEBÄUDE
 echo href("http://nobbz.de/wiki/index.php/Geb%C3%A4ude_%C3%9Cbersicht","Gebäude").":<br>\n";
 foreach ($xml->data[0]->city[0]->building as $building) {
-	echo img($icon_url.$building["img"].".gif").LinkBuilding($building["name"])."<br>\n";
+	echo img($icon_url.$building["img"].".gif").LinkBuilding(utf8_decode($building["name"]))."<br>\n";
 }
 
 
@@ -813,7 +878,7 @@ foreach ($xml->data[0]->bank[0]->item as $item) {
 	$c = (int)$item["count"];
 	$cat = (string)$item["cat"];
 	$bBroken = $item["broken"] != 0;
-	$html = (($c>1)?($c."x"):"").LinkItem($item["name"],img($icon_url_item.$item["img"].".gif",utf8_decode($item["name"]),$bBroken?"class='broken'":""));
+	$html = (($c>1)?($c."x"):"").LinkItem($item["name"],img($icon_url_item.$item["img"].".gif",($item["name"]),$bBroken?"class='broken'":""));
 	if (!isset($cats[$cat])) $cats[$cat] = array();
 	$cats[$cat][] = "<span style='white-space: nowrap;'>".$html."</span>";
 }
@@ -901,60 +966,85 @@ function MapGetCellContent ($x,$y) {
 	$o = GetMapNote($rx,$ry);
 	$data = Map($x,$y);
 	$r = $data->building[0];
+	$html = "";
 	if ($o) {
 		$age = (int)$gGameDay - (int)$o->day;
 		$bToday = ($age == 0);
 		$zombies = $bToday ? $o->zombies : "?"; // GetZombieNumText($x,$y)
 		$timetxt = "[".GetAgeText($o->day,$o->time)."]";
 		$old = (!$bToday) ? "_old" : "";
-		$html = "";
 		if ($o->icon >= 0 && $o->icon < kNumIcons)
 				$html .= img("images/map/icon_".$o->icon.$old.".gif","($rx/$ry) ".$zombies." Zombies. <".$gIconText[$o->icon]."> ".$timetxt." ".$o->txt);
 		else	$html .= img(TagIconURL($data["tag"]),GetMapToolTip($x,$y));
 		$html .= ($zombies != "?") ? ("<span class='mapcellzombietxt' title='".htmlspecialchars($zombies)." Zombies'>$zombies</span>") : ""; // GetZombieNumText($x,$y)
-		if ($r) $html .= img("images/map/iconmark_ruin.gif",($r["name"]));
+		//~ if ($r) $html .= img("images/map/iconmark_ruin.gif",($r["name"]));
 		return $html;
 	}
-	if ($data["tag"]) return img(TagIconURL($data["tag"]),GetMapToolTip($x,$y));
-	if ($r) $html .= img("images/map/iconmark_ruin.gif",($r["name"]));
-	return "";
+	if ($data["tag"]) $html .= img(TagIconURL($data["tag"]),GetMapToolTip($x,$y));
+	//~ if ($r) $html .= img("images/map/iconmark_ruin.gif",($r["name"])," class='iconmark'");
+	
+	/*
+	ruin etc  zwmap mapjs7_core.js layers : divs : .building_<?=$l?> { background-image:url(<?=g("gebaeude/house-$l.png")?>);
+	vdmap : <img style="left: 6px; top: 15px;" class="citizen" src="/images/citizen.gif" width="5" height="5" />  (kleines gelbes pünktchen)
+		#map div .citizen {
+		position:absolute;
+		}
+
+	<div id="map" style="width: 240px; height: 240px;">
+		<div style="left:60px; top:100px; width:20px; height:20px; background-image:url(/images/map/ruin_d3.gif);" onclick="showDetails(3, 5);" onmouseover="showInfo(this);">
+			<div class="data">-4/0 &middot; 3x<img class="tag" src="/images/human.gif" width="16" height="16"></div>      ---> tooltip
+			<img style="left: 9px; top: 11px;" class="citizen" src="/images/citizen.gif" width="5" height="5" />
+			<img style="left: 4px; top: 11px;" class="citizen" src="/images/citizen.gif" width="5" height="5" />
+			<img style="left: 0px; top: 7px;" class="citizen" src="/images/citizen.gif" width="5" height="5" />
+		</div>
+
+
+	*/
+	return $html;
 }
 
 echo "<table border=0 cellspacing=0><tr><td valign=top>\n";
-//~ echo "<span class='map' id='idMapContainer'>\n";
-echo "<table class='map' border=0 cellspacing=0 cellpadding=0>\n";
-for ($y=0;$y<$h;++$y) {
-	echo "<tr>";
-	for ($x=0;$x<$w;++$x) {
-		$data = Map($x,$y);
-		$bgimg = "zone_bg.gif";
-		if ($data) {
-			$bHasBuilding = isset($data->building);
-			$bViewed = ((int)$data["nvt"]) == 0; // nvt : 1/0 (value is 1 was already discovered, but Not Visited Today)
-			$bgimg = $bViewed ? "zone.gif" : "zone_nv.gif";
-			if ($bHasBuilding) $bgimg = $bViewed ? "ruin.gif" : "ruin_nv.gif";
-			if ($data["danger"] == 1) $bgimg = "zone_d1.gif";
-			if ($data["danger"] == 2) $bgimg = "zone_d2.gif";
-			if ($data["danger"] >= 3) $bgimg = "zone_d3.gif";
+echo "<span id='idMapContainer'>\n";
+RenderMapBlock();
+function RenderMapBlock () {
+	global $w,$h;
+	echo "<table class='map' border=0 cellspacing=0 cellpadding=0>\n";
+	for ($y=0;$y<$h;++$y) {
+		echo "<tr>";
+		for ($x=0;$x<$w;++$x) {
+			$data = Map($x,$y);
+			$bgimg = "zone_bg.gif";
+			if ($data) {
+				$bHasBuilding = isset($data->building);
+				$bViewed = ((int)$data["nvt"]) == 0; // nvt : 1/0 (value is 1 was already discovered, but Not Visited Today)
+				$bgimg = $bViewed ? "zone.gif" : "zone_nv.gif";
+				if ($bHasBuilding) $bgimg = $bViewed ? "ruin.gif" : "ruin_nv.gif";
+				if ($data["danger"] == 1) $bgimg = "zone_d1.gif";
+				if ($data["danger"] == 2) $bgimg = "zone_d2.gif";
+				if ($data["danger"] >= 3) $bgimg = "zone_d3.gif";
+			}
+			if ($x == kCityX && $y == kCityY) $bgimg = "city.gif";
+			
+			$bgimg = "background='images/map/$bgimg'";
+			
+			$rx = $x-kCityX;
+			$ry = kCityY-$y;
+			
+			$style = ""; // "bgcolor=green"
+			$fname = IsOwnGame()?"MapClickCell":"MapClickCell_Dummy";
+			echo "<td $style $bgimg onclick='$fname($rx,$ry);' title='($rx,$ry)' id='map_".$rx."_".$ry."'>".MapGetCellContent($x,$y)."</td>";
+			//~ echo "<td width=16 height=16>".($data?("nvt=".$data["nvt"].",tag=".$data["tag"]):"")."</td>";
+			//~ echo "<td width=16 height=16>".($data?"x":"")."</td>";
 		}
-		if ($x == kCityX && $y == kCityY) $bgimg = "city.gif";
-		
-		$bgimg = "background='images/map/$bgimg'";
-		
-		$rx = $x-kCityX;
-		$ry = kCityY-$y;
-		
-		$style = ""; // "bgcolor=green"
-		$fname = IsOwnGame()?"MapClickCell":"MapClickCell_Dummy";
-		echo "<td $style $bgimg onclick='$fname($rx,$ry);' title='($rx,$ry)' id='map_".$rx."_".$ry."'>".MapGetCellContent($x,$y)."</td>";
-		//~ echo "<td width=16 height=16>".($data?("nvt=".$data["nvt"].",tag=".$data["tag"]):"")."</td>";
-		//~ echo "<td width=16 height=16>".($data?"x":"")."</td>";
+		echo "</tr>\n";
 	}
-	echo "</tr>\n";
+	echo "</table>\n";
 }
-echo "</table>\n";
+echo "</span>\n";
+
+//~ echo "<a onclick='alert(\"todo\")'>(Marker)</a>\n";
+
 echo "</td><td valign=top align=left>\n";
-//~ echo "</span>\n";
 echo "<span id='idMapCellInfo'>auf die Karte clicken...</span>\n";
 echo "</td></tr></table>\n";
 
