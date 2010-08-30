@@ -57,6 +57,14 @@ define("kIconID_DigLeer",0);
 define("kIconID_DigVoll",1);
 define("kIconID_Notiz",6);
 
+define("kSearchGameID",isset($_REQUEST["gameid"])?intval($_REQUEST["gameid"]):false);
+define("kSearchXMLID",isset($_REQUEST["xmlid"])?intval($_REQUEST["xmlid"]):false);
+
+define("kMapMode_Marker"		,1);
+define("kMapMode_Buerger"		,2);
+define("kMapMode_InGameTags"	,3);
+
+$gRegisteredItemTypeIDs = sqlgettable("SELECT id FROM itemtype","id");
 
 $gIconText = array(
 	0=>"Feld leer",
@@ -67,6 +75,40 @@ $gIconText = array(
 	5=>"ok",
 	6=>"notiz",
 );
+
+
+if (isset($_REQUEST["refresh_other"])) {
+	//~ $arr = sqlgettable("SELECT *,MAX(time) as maxtime FROM accesslog GROUP BY seelenid");
+	$arr = sqlgettable("SELECT id,seelenid,cityname,MAX(time) as maxtime FROM xml GROUP BY seelenid");
+	echo count($arr)." found "."<br>\n";
+	$today_start_t = floor(time() / (24*3600))*24*3600;
+	$seelenid = false;
+	$otherid = false;
+	foreach ($arr as $o) {
+		if ($o->maxtime < $today_start_t) {
+			echo "refresh id ".$o->id." ".$o->cityname." ".$seelenid."<br>\n";
+			$seelenid = $o->seelenid;
+			$otherid = $o->id;
+		}
+	}
+	if ($seelenid) {
+		if (!define("kSeelenID",$seelenid)) exit("failed to set constant, already set?");
+		$xmlurl = "http://www.dieverdammten.de/xml/?k=".urlencode(kSeelenID).";sk=".urlencode(kDV_SiteKey);
+		define("kXMLUrl_Basic",$xmlurl); // kein sitekey
+		define("kXMLUrl_Secret",$xmlurl); // enthaelt sitekey! das sollte der user nicht zu sehen kriegen
+		$xmlstr = file_get_contents(kXMLUrl_Secret);
+		if (!$xmlstr) exit("failed to load xml");
+		$xml = simplexml_load_string(MyEscXML($xmlstr));
+		MyLoadGlobals();
+		StoreXML();
+		echo "stored '$otherid' : ".(string)$city["city"]." ".kSeelenID."<br>\n";
+	}
+	exit("refresh other");
+}
+
+
+
+
 
 $gShowAvatars = false;
 
@@ -101,14 +143,6 @@ function GetLatestXmlByID				($xmlid)	{ return sqlgetone("SELECT xml FROM xml WH
 function GetLatestXmlStrFromGameID		($gameid)	{ return sqlgetone("SELECT xml FROM xml WHERE ".arr2sql(array("gameid"=>$gameid))." ORDER BY id DESC LIMIT 1"); }
 function GetLatestXmlStrFromSeelenID	($seelenid)	{ return sqlgetone("SELECT xml FROM xml WHERE ".arr2sql(array("seelenid"=>$seelenid))." ORDER BY id DESC LIMIT 1"); }
 
-define("kSearchGameID",isset($_REQUEST["gameid"])?intval($_REQUEST["gameid"]):false);
-define("kSearchXMLID",isset($_REQUEST["xmlid"])?intval($_REQUEST["xmlid"]):false);
-
-define("kMapMode_Marker"		,1);
-define("kMapMode_Buerger"		,2);
-define("kMapMode_InGameTags"	,3);
-
-$gRegisteredItemTypeIDs = sqlgettable("SELECT id FROM itemtype","id");
 
 if (isset($_REQUEST["scanitemtypes"])) {
 	// only used once during development, later new items will be registered automatically when they are seen in the bank
@@ -481,6 +515,7 @@ define("kXMLUrl_SampleFile","sample.xml"); // kein sitekey
 define("kXMLUrl_Basic",$xmlurl); // kein sitekey
 define("kXMLUrl_Secret",$xmlurl_secret); // enthaelt sitekey! das sollte der user nicht zu sehen kriegen
 
+
 /*
 http://www.dieverdammten.de/xml?k=USER_KEY;sk=SITE_KEY
 http://www.dieverdammten.de/xml/ghost?k=USER_KEY;sk=SITE_KEY
@@ -558,7 +593,7 @@ function PrintHeaderSection () { // login,links,disclaimer
 			?>
 			<form action='?' method="GET">
 			<select name="gameid">
-			<?php foreach ($otherCities as $city) {?>
+			<?php foreach ($otherCities as $city) if ($city->cityname != "") {?>
 			<option value="<?=$city->gameid?>" <?=($mygameid == $city->gameid)?"selected":""?>><?=htmlspecialchars(utf8_decode($city->cityname))?>(Tag<?=$city->maxday?>)</option>
 			<?php }?>
 			</select>
@@ -759,7 +794,7 @@ function MyLoadGlobals () {
 	$buerger_draussen = 0;
 	$buerger_alive = 0;
 	$gCitizens = $xml->data[0]->citizens[0]->citizen;
-	foreach ($gCitizens as $citizen) { 
+	if ($gCitizens) foreach ($gCitizens as $citizen) { 
 		if ($citizen["dead"] == "0") ++$buerger_alive;
 		$x = intval($citizen["x"]);
 		$y = intval($citizen["y"]);
@@ -776,8 +811,8 @@ function MyLoadGlobals () {
 	global $gBuildingDone,$gUpgrades;
 	$gBuildingDone = array();
 	$gUpgrades = array();
-	foreach ($xml->data[0]->upgrades[0]->up as $upgrade) $gUpgrades[StripUml($upgrade["name"])] = (int)$upgrade["level"];
-	foreach ($xml->data[0]->city[0]->building as $building) $gBuildingDone[StripUml($building["name"])] = true;
+	$arr = $xml->data[0]->upgrades[0]->up; if ($arr) foreach ($arr as $upgrade) $gUpgrades[StripUml($upgrade["name"])] = (int)$upgrade["level"];
+	$arr = $xml->data[0]->city[0]->building; if ($arr) foreach ($arr as $building) $gBuildingDone[StripUml($building["name"])] = true;
 
 	
 	global $gMap,$w,$h;
@@ -792,7 +827,7 @@ function MyLoadGlobals () {
 		$gMap["$x,$y"] = $data; 
 		//~ echo "MapSet($x,$y,nvt=".$data["nvt"].",tag=".$data["tag"].")<br>\n";
 	}
-	foreach ($map->zone as $zone) {
+	if ($map->zone) foreach ($map->zone as $zone) {
 		$x = intval($zone["x"]);
 		$y = intval($zone["y"]);
 		MapSet($x,$y,$zone);
@@ -802,8 +837,8 @@ function MyLoadGlobals () {
 }
 
 MyLoadGlobals();
-
-if ($gStoreXML) {
+function StoreXML () {
+	global $gGameID,$gGameDay,$city,$xmlstr;
 	$o = false;
 	$o->seelenid = (string)kSeelenID;
 	$o->time = time();
@@ -812,6 +847,10 @@ if ($gStoreXML) {
 	$o->day = (int)$gGameDay;
 	$o->xml = $xmlstr;
 	sql("INSERT INTO xml SET ".obj2sql($o));
+}
+
+if ($gStoreXML) {
+	StoreXML();
 	if ($gDebugStreamID) sql("DELETE FROM stream_debug WHERE id = ".intval($gDebugStreamID));
 }
 
