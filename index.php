@@ -71,6 +71,14 @@ $gIconText = array(
 $gShowAvatars = false;
 
 $temp_seelenid = isset($_COOKIE["SeelenID"]) ? $_COOKIE["SeelenID"] : false;
+if ($temp_seelenid) {
+	$o = false;
+	$o->seelenid = $temp_seelenid;
+	$o->ip = $_SERVER["REMOTE_ADDR"];
+	$o->browser = $_SERVER["HTTP_USER_AGENT"];
+	$o->time = time();
+	sql("INSERT INTO accesslog SET ".obj2sql($o));
+}
 $gUseSampleData = isset($_REQUEST["sample"]);
 if ($gUseSampleData) $temp_seelenid = "abcdefghijklmnopqrstuvwxyz";
 
@@ -89,17 +97,47 @@ define("kSeelenID",$temp_seelenid); // replaces the old $gSeelenID
 
 //~ session_start(); // -> man kann $_SESSION benutzen
 
+function GetLatestXmlByID				($xmlid)	{ return sqlgetone("SELECT xml FROM xml WHERE ".arr2sql(array("id"=>$xmlid))); }
 function GetLatestXmlStrFromGameID		($gameid)	{ return sqlgetone("SELECT xml FROM xml WHERE ".arr2sql(array("gameid"=>$gameid))." ORDER BY id DESC LIMIT 1"); }
 function GetLatestXmlStrFromSeelenID	($seelenid)	{ return sqlgetone("SELECT xml FROM xml WHERE ".arr2sql(array("seelenid"=>$seelenid))." ORDER BY id DESC LIMIT 1"); }
 
 define("kSearchGameID",isset($_REQUEST["gameid"])?intval($_REQUEST["gameid"]):false);
+define("kSearchXMLID",isset($_REQUEST["xmlid"])?intval($_REQUEST["xmlid"]):false);
 
 define("kMapMode_Marker"		,1);
 define("kMapMode_Buerger"		,2);
 define("kMapMode_InGameTags"	,3);
 
+$gRegisteredItemTypeIDs = sqlgettable("SELECT id FROM itemtype","id");
+
+if (isset($_REQUEST["scanitemtypes"])) {
+	// only used once during development, later new items will be registered automatically when they are seen in the bank
+	$r = sql("SELECT xml FROM xml");
+	while ($arr = mysql_fetch_array($r)) {
+		$xml = simplexml_load_string(MyEscXML($arr[0]));
+		foreach ($xml->data[0]->bank[0]->item as $item) RegisterItemType($item);
+	}
+	exit(0);
+}
+
+function RegisterItemType ($item) {
+	global $gRegisteredItemTypeIDs;
+	$o = false;
+	$o->id = (string)$item["id"];
+	if ($gRegisteredItemTypeIDs[$o->id]) return;
+	$o->cat = (string)$item["cat"];
+	$o->img = (string)$item["img"];
+	$o->name = (string)$item["name"];
+	$o->cat2 = $o->cat; // later used to mark special types : alcohol,drugs,tools(weapons)#
+	if (!sqlgetone("SELECT 1 FROM itemtype WHERE id = ".intval($o->id)))
+		sql("REPLACE INTO itemtype SET ".obj2sql($o));
+}
+
+
 if (isset($_REQUEST["ajax"])) {
-	$xmlstr = kSearchGameID ? GetLatestXmlStrFromGameID(kSearchGameID) : GetLatestXmlStrFromSeelenID(kSeelenID);
+	if (kSearchXMLID) $xmlstr = GetLatestXmlByID(kSearchXMLID);
+	else if (kSearchGameID) $xmlstr = GetLatestXmlStrFromGameID(kSearchGameID);
+	else $xmlstr = GetLatestXmlStrFromSeelenID(kSeelenID);
 	if (!$xmlstr) exit("failed to load xml");
 	$xml = simplexml_load_string(MyEscXML($xmlstr));
 	MyLoadGlobals();
@@ -437,6 +475,59 @@ function SetMapMode (d) { MyAjaxGet("?ajax=mapmode&mapmode="+escape(d)+"&gameid=
 
 
 $xmlurl = kSeelenID ? ("http://www.dieverdammten.de/xml/?k=".urlencode(kSeelenID)) : false;
+$xmlurl_secret = $xmlurl; // soll nicht für den user sichtbar sein, enthaelt evtl sitekey
+if (kDV_SiteKey && kDV_SiteKey != "kDV_SiteKey" && $xmlurl_secret) $xmlurl_secret .= ";sk=".urlencode(kDV_SiteKey); // einziger unterschied : fastcache
+define("kXMLUrl_SampleFile","sample.xml"); // kein sitekey
+define("kXMLUrl_Basic",$xmlurl); // kein sitekey
+define("kXMLUrl_Secret",$xmlurl_secret); // enthaelt sitekey! das sollte der user nicht zu sehen kriegen
+
+/*
+http://www.dieverdammten.de/xml?k=USER_KEY;sk=SITE_KEY
+http://www.dieverdammten.de/xml/ghost?k=USER_KEY;sk=SITE_KEY
+http://www.dieverdammten.de/xml/ghost?k=USER_KEY;sk=SITE_KEY;comment=1
+http://www.dieverdammten.de/disclaimer?id=DESTINATION_ID
+
+DV-FORUM
+
+
+The error "only_available_to_secure_request" means that you are trying
+to call the Ghost XML request URL
+("http://www.dieverdammten.de/xml/ghost? k=....;sk=...") with an
+invalid key (k). This is more likely that the provided user-key (k) is
+not a secure key.
+
+To get access to this XML, the visitor has to follow these steps :
+
+- access your site through the site listing on DieVerdammten.de (not
+yet available, unfortunately),
+- your script will then receive a personal specific user key from this call,
+- you can then request the desired XML URL using your permanent site
+key (sk) AND this user specific key (k).
+
+The "secured" user key is built on-the-fly with the "public user key"
++ "your site key" : this means that a webmaster can't use a secured
+user-key on another external website, as this key is specific to his
+very own website...
+
+You should ask Dayan to add your URL to the Dieverdammten directory,
+so you would be able to get the secured key feature.
+
+
+...
+Außerdem ist der Name der POST-Variable des UserKeys, der über die Seite ermittelt wird "key"(simple as that fand das trotzdem nicht in der Hilfe...)
+...
+Deine Webseite kann dann nur noch über das Verzeichnis externer Anwendungen aufgerufen werden und du erhälst von uns einen "key" in POST-Form. Ruft die folgenden URL auf das XML zu erhalten: 
+
+
+*/
+
+if (isset($_REQUEST["sktest"])) {
+	//~ $url = "http://www.dieverdammten.de/xml/ghost?k=".urlencode(kSeelenID).";sk=".kDV_SiteKey;
+	$url = "http://www.dieverdammten.de/xml?k=".urlencode(kSeelenID).";sk=".kDV_SiteKey;
+	
+	echo "url=$url<br><hr>\n\n\n";
+	exit(file_get_contents($url));
+}
 
 // disclaimer
 function MotionTwinNote() {
@@ -452,7 +543,7 @@ function MotionTwinNote() {
 // ***** ***** ***** ***** ***** HEADER
 
 function PrintHeaderSection () { // login,links,disclaimer	
-	global $gGameID,$xmlurl;
+	global $gGameID;
 	echo "<table><tr><td valign=top>";
 
 		echo "<table><tr><td>";
@@ -478,18 +569,17 @@ function PrintHeaderSection () { // login,links,disclaimer
 		echo "</td></tr></table>";
 
 
-		echo "Author: ".href("mailto:ghoulsblade@schattenkind.net","ghoulsblade@schattenkind.net")." ICQ:107677833 (opensource) ".
-			href("http://forum.der-holle.de/viewtopic.php?f=42&t=106","ForenThread").
-			"<br>\n";
-		echo "Links:".
-			href("http://dvmap.nospace.de/index.php","Karte")." ".
-			href("http://emptycookie.de/index.php?id=".(kSeelenID?kSeelenID:""),"Übersicht")." ".
+		echo "Links: ".
+			href("mailto:ghoulsblade@schattenkind.net","(email)")." ".
+			href("http://forum.der-holle.de/viewtopic.php?f=42&t=106","ForenThread")." ".
+			href("http://dvmap.nospace.de/index.php","DVMap")." ".
+			href("http://emptycookie.de/index.php?id=".(kSeelenID?kSeelenID:""),"EmptyCookie")." ".
 			href("http://nobbz.de/wiki/","NobbzWiki")." ".
 			href("http://forum.der-holle.de/","HolleForum")." ".
 			href("http://chat.mibbit.com/?channel=%23dieverdammten&server=irc.mibbit.net","Chat")." ".
 			href("http://www.patamap.com/index.php?page=patastats","PataMap")." ".
 			href("http://github.com/ghoulsblade/zwverdammt","github(sourcecode)")." ". 
-			href($xmlurl,"XmlStream")." ". 
+			href(kXMLUrl_Basic,"XmlStream")." ". 
 			"<br>\n";
 			// http://verdammt.mnutz.de/  (baldwin,stadt)
 			// http://asid.dyndns.org/exphelper2 (asid,holleirc)
@@ -516,34 +606,57 @@ if (!kSeelenID) {
 $temp_loadinfotxt = "";
 $gStoreXML = true;
 $gDemo = false;
-$xmlurl_sample = "sample.xml";
 $xmlstr = false;
 $xml = false;
+$gDebugStreamID = false;
 if (kSearchGameID) {
 	$xmlstr = GetLatestXmlStrFromGameID(kSearchGameID); 
 	if (!$xmlstr) exit("failed to load xml");
 	$xml = simplexml_load_string(MyEscXML($xmlstr));
 	$gStoreXML = false;
+} else if (kSearchXMLID) {
+	$xmlstr = GetLatestXmlByID(kSearchXMLID);
+	if (!$xmlstr) exit("failed to load xml");
+	$xml = simplexml_load_string(MyEscXML($xmlstr));
+	$gStoreXML = false;
 } else {
 	if ($gUseSampleData) { 
-		$xmlurl = $xmlurl_sample; 
 		$gDemo = true;
 		$gStoreXML = false;
-		$xmlstr = GetLatestXmlStrFromSeelenID(kMySQL_SampleSoulID);
+		$xmlstr = GetLatestXmlStrFromSeelenID(kDV_SampleSoulID);
+		if ($xmlstr) {
+			$temp_loadinfotxt .= "(Beispiel aus der Datenbank)<br>\n";
+		} else {
+			$xmlstr = file_get_contents(kXMLUrl_SampleFile);
+			if ($xmlstr) {
+				$temp_loadinfotxt .= "(Beispiel aus Datei)<br>\n";
+			} else {
+				exit("Laden eines Beispiels aus Datenbank und Datei fehlgeschlagen!");
+			}
+		}
 		//~ if ($xmlstr) $temp_loadinfotxt .= "sample load from db OK<br>\n"; else $temp_loadinfotxt .= "sample load from db failed<br>\n";
 	}
-	if (!$xmlstr) $xmlstr = file_get_contents($xmlurl);
+	if (!$xmlstr) {
+		$xmlstr = file_get_contents(kXMLUrl_Secret);
+		$o = false;
+		$o->time = time();
+		$o->seelenid = "";
+		$o->xml = $xmlstr;
+		sql("INSERT INTO stream_debug SET ".obj2sql($o)); 
+		// save stream right after download and delete it later after successful save.
+		// this way we can capture streams that trigger errors before being saved in fully analyzed format
+		$gDebugStreamID = mysql_insert_id();
+	}
 	@$xml = simplexml_load_string(MyEscXML($xmlstr));
 
 	if (!$xml->data[0]->city[0]["city"] || $xml->status[0]["open"] == "0") {
 		$xmlstr = GetLatestXmlStrFromSeelenID(kSeelenID);
 		$temp_loadinfotxt .= "<h1>Webseite down, Zombie-Angriff im Gange!</h1>\n";
 		if ($xmlstr) {
-			$temp_loadinfotxt .= "(lade letzten stand)<br>\n";
+			$temp_loadinfotxt .= "(lade letzten Stand)<br>\n";
 		} else {
 			$temp_loadinfotxt .= "(lade dummy/demo daten)<br>\n";
-			$xmlurl = $xmlurl_sample;
-			$xmlstr = file_get_contents($xmlurl);
+			$xmlstr = file_get_contents(kXMLUrl_SampleFile);
 		}
 		$xml = simplexml_load_string(MyEscXML($xmlstr));
 		$gStoreXML = false;
@@ -690,11 +803,6 @@ function MyLoadGlobals () {
 
 MyLoadGlobals();
 
-PrintJavaScriptBlock();
-echo $temp_loadinfotxt;
-
-PrintHeaderSection(); // late, so full xml is available
-
 if ($gStoreXML) {
 	$o = false;
 	$o->seelenid = (string)kSeelenID;
@@ -704,7 +812,13 @@ if ($gStoreXML) {
 	$o->day = (int)$gGameDay;
 	$o->xml = $xmlstr;
 	sql("INSERT INTO xml SET ".obj2sql($o));
+	if ($gDebugStreamID) sql("DELETE FROM stream_debug WHERE id = ".intval($gDebugStreamID));
 }
+
+PrintJavaScriptBlock();
+echo $temp_loadinfotxt;
+
+PrintHeaderSection(); // late, so full xml is available
 
 
 
@@ -948,6 +1062,7 @@ echo "<table border=0 width='100%'><tr><td valign=top align=left>\n";
 //~ echo "Bank:<br>";
 $cats = array();
 foreach ($xml->data[0]->bank[0]->item as $item) { 
+	RegisterItemType($item);
 	$c = (int)$item["count"];
 	$cat = (string)$item["cat"];
 	$bBroken = $item["broken"] != 0;
@@ -1040,7 +1155,6 @@ function GetMapToolTip ($x,$y) {
 	$ry = kCityY - $y;
 	$txt .= "($rx,$ry)";
 	if ($x != kCityX || $y != kCityY) { 
-		$txt .= " ".implode(",",GetBuergerNamenOnAbsPos($x,$y));
 		$o = GetMapNote($rx,$ry);
 		if ($o) {
 			$age = (int)$gGameDay - (int)$o->day;
@@ -1048,11 +1162,13 @@ function GetMapToolTip ($x,$y) {
 			$zombies = $bToday ? trim($o->zombies) : false; // GetZombieNumText($x,$y)
 			if ($zombies == "?" || $zombies == "") $zombies = false;
 			$txt .= " ";
+			if (!$zombies) $zombies = GetZombieNumText($x,$y);
 			if ($zombies) $txt .= " ".$zombies." Zombies.";
 			if ($o->icon >= 0) $txt .= " <".$gIconText[$o->icon].">";
 			$txt .= " [".GetAgeText($o->day,$o->time)."]";
 			$txt .= " ".$o->txt;
 		}
+		$txt .= " ".implode(",",GetBuergerNamenOnAbsPos($x,$y));
 	}
 	return $txt;
 }
@@ -1223,7 +1339,6 @@ echo "</td></tr></table>\n";
 
 //~ echo "xml=".htmlspecialchars($xml);
 
-//~ $xmlurl = "sample.xml";
 // 
 
 

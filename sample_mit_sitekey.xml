@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<hordes xmlns:dc="http://purl.org/dc/elements/1.1" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+<headers link="http://www.dieverdammten.de/xml" iconurl="http://data.dieverdammten.de/gfx/icons/" secure="0" author="Motion Twin &lt;http://www.motion-twin.com&gt;" language="de" version="2.16" avatarurl="http://imgup.motion-twin.com/" generator="haxe">
+<game days="1" quarantine="0" datetime="2010-08-30 13:42:15" id="1005"/>
+</headers>
+<data cache-date="2010-08-30 13:42:15" cache-fast="1">
+<city city="Berüchtigtes Gefängnis" door="1" water="115" chaos="0" x="7" y="5">
+<building name="Werkstatt" temporary="0" id="1033" img="small_refine">
+<![CDATA[Die Entwicklung einer jeden Stadt hängt vom Bau einer verdreckten Werkstatt ab. Sie ist die Voraussetzung für alle weiter entwickelten Gebäude.]]>
+</building>
+<building name="Wachturm" temporary="0" id="1050" img="item_tagger">
+<![CDATA[Mit dem Wachturm ist es möglich den nächtlichen Angriff abzuschätzen. Die Stadtbürger können dann die entsprechenden Gegenmaßnahmen vorbereiten (oder auch nicht...). Nach seiner Fertigstellung können Notfallkonstruktionen aller Art gebaut werden.]]>
+</building>
+<defense base="5" items="1" citizen_guardians="1" citizen_homes="17" upgrades="0" buildings="3" total="28" itemsMul="2"/>
+</city>
+<bank>
+<item name="Streichholzschachtel" count="10" id="26" cat="Misc" img="lights" broken="0"/>
+<item name="Klebeband" count="3" id="81" cat="Rsc" img="rustine" broken="0"/>
+<item name="Unkrautbekämpfungsmittel Ness-Quick" count="1" id="137" cat="Misc" img="digger" broken="0"/>
+<item name="Leckeres Steak" count="1" id="52" cat="Food" img="meat" broken="0"/>
+<item name="Paracetoid 7g" count="1" id="136" cat="Drug" img="disinfect" broken="0"/>
+<item name="Dosenöffner" count="1" id="23" cat="Weapon" img="can_opener" broken="0"/>
+<item name="Plastiktüte mit Sprengstoff" count="1" id="78" cat="Weapon" img="bgrenade_empty" broken="0"/>
+<item name="Verrotteter Baumstumpf" count="16" id="162" cat="Rsc" img="wood_bad" broken="0"/>
+<item name="Kassettenradio" count="2" id="105" cat="Furniture" img="radio_on" broken="0"/>
+<item name="Metalltrümmer" count="4" id="161" cat="Rsc" img="metal_bad" broken="0"/>
+<item name="Kassettenradio (ohne Strom)" count="7" id="104" cat="Misc" img="radio_off" broken="0"/>
+<item name="Metallstruktur" count="1" id="160" cat="Rsc" img="metal_beam" broken="0"/>
+<item name="Krebserregender Ofen" count="1" id="187" cat="Furniture" img="machine_2" broken="0"/>
+<item name="Lächerliches Taschenmesser" count="1" id="18" cat="Weapon" img="small_knife" broken="0"/>
+<item name="Alte Waschmaschine" count="1" id="186" cat="Furniture" img="machine_1" broken="0"/>
+<item name="Sprengstoff" count="1" id="73" cat="Rsc" img="explo" broken="0"/>
+<item name="Schraubenzieher" count="1" id="14" cat="Weapon" img="screw" broken="0"/>
+<item name="Zonenmarker 'Radius'" count="1" id="125" cat="Misc" img="tagger" broken="0"/>
+<item name="Unvollständiges Kartenspiel" count="1" id="151" cat="Misc" img="cards" broken="0"/>
+<item name="Getrocknete Marshmallows" count="1" id="235" cat="Food" img="chama" broken="0"/>
+<item name="Starke Gewürze" count="1" id="149" cat="Misc" img="spices" broken="0"/>
+<item name="Verschimmelte Stulle" count="2" id="147" cat="Food" img="food_sandw" broken="0"/>
+<item name="Wasserbombe" count="1" id="62" cat="Weapon" img="grenade" broken="0"/>
+<item name="Fades Gebäck" count="1" id="146" cat="Food" img="food_tarte" broken="0"/>
+<item name="Batteriewerfer 1-PDTG (geladen)" count="2" id="5" cat="Weapon" img="pilegun" broken="0"/>
+<item name="Offene Konservendose" count="4" id="4" cat="Food" img="can_open" broken="0"/>
+<item name="Alteisen" count="5" id="60" cat="Rsc" img="metal" broken="0"/>
+<item name="Matratze" count="1" id="31" cat="Armor" img="bed" broken="0"/>
+<item name="Krummes Holzbrett" count="4" id="59" cat="Rsc" img="wood2" broken="0"/>
+<item name="Ranzige Butterkekse" count="1" id="143" cat="Food" img="food_biscuit" broken="0"/>
+<item name="Batterie" count="11" id="2" cat="Rsc" img="pile" broken="0"/>
+<item name="Ration Wasser" count="1" id="1" cat="Food" img="water" broken="0"/>
+<item name="Beruhigungsspritze" count="1" id="28" cat="Drug" img="xanax" broken="0"/>
+</bank>
+<expeditions/>
+<citizens>
+<citizen dead="0" hero="0" name="56brutal" x="7" y="5" id="9172" ban="0" job="basic" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="Alestor" avatar="hordes/a/4/88c2a974_9841.jpg" x="8" y="8" id="9841" ban="0" job="basic" out="1" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="Baldwin" avatar="hordes/e/b/a11743a1_9061.jpg" x="7" y="5" id="9061" ban="0" job="basic" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="BlauerAffe" x="7" y="5" id="9563" ban="0" job="basic" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="dewa" avatar="hordes/e/f/33154c3a_12047.jpg" x="7" y="5" id="12047" ban="0" job="basic" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="DeWitt" x="7" y="5" id="12331" ban="0" job="basic" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="DezzerOne" avatar="hordes/b/d/f2b44c8f_9550.jpg" x="7" y="5" id="9550" ban="0" job="basic" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="Duffman" x="10" y="6" id="13096" ban="0" job="basic" out="1" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="ELMchen" avatar="hordes/7/7/1f7765ae_12915.jpg" x="7" y="5" id="12915" ban="0" job="basic" out="0" baseDef="0">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="firenable" x="7" y="5" id="12842" ban="0" job="basic" out="0" baseDef="0">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="freak1896" x="7" y="5" id="9539" ban="1" job="basic" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="freak18961" x="7" y="5" id="12324" ban="1" job="basic" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="freaky1896" x="7" y="5" id="11796" ban="1" job="basic" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="Fredetz" x="7" y="5" id="9676" ban="0" job="basic" out="0" baseDef="0">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="1" name="ghoulsblade" avatar="hordes/4/9/7d2611ba_9720.jpg" x="7" y="5" id="9720" ban="0" job="collec" out="0" baseDef="1">
+<![CDATA[Rohstoffe Bunkern für die Stadt, Liste im Forum]]>
+</citizen>
+<citizen dead="0" hero="0" name="HorstDerHeld" x="7" y="5" id="7624" ban="0" job="basic" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="1" name="karandas" avatar="hordes/7/b/01f34e5b_6600.jpg" x="7" y="5" id="6600" ban="0" job="eclair" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="kazeger" avatar="hordes/d/a/0991fc70_8682.jpg" x="8" y="4" id="8682" ban="0" job="basic" out="1" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="1" name="Kiteru" avatar="hordes/f/9/4b47ba11_7611.jpg" x="7" y="5" id="7611" ban="0" job="guardian" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="Konfizu" x="5" y="4" id="11266" ban="0" job="basic" out="1" baseDef="0">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="Kortusion" x="7" y="5" id="11251" ban="0" job="basic" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="matzeatze" avatar="hordes/3/f/5770ca20_9828.jpg" x="7" y="5" id="9828" ban="0" job="basic" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="michael" x="7" y="5" id="12756" ban="0" job="basic" out="0" baseDef="0">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="moander" x="7" y="5" id="12974" ban="0" job="basic" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="Neofox" x="7" y="5" id="13074" ban="0" job="basic" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="Obscurefighterin" x="5" y="7" id="8959" ban="0" job="basic" out="1" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="Oink" x="7" y="5" id="7688" ban="0" job="basic" out="0" baseDef="1">
+<![CDATA[Baut ein Zelt! (KEINE Barracke)]]>
+</citizen>
+<citizen dead="0" hero="0" name="Othep" avatar="hordes/2/2/ceccf72b_9724.jpg" x="7" y="4" id="9724" ban="0" job="basic" out="1" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="Ph03n1X" avatar="hordes/b/d/24ffee31_729.jpg" x="7" y="5" id="729" ban="0" job="basic" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="Pyro1988" x="7" y="5" id="12054" ban="0" job="" out="0" baseDef="0">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="Salkin" x="8" y="4" id="12825" ban="0" job="basic" out="1" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="Samjaza" x="7" y="5" id="9968" ban="0" job="basic" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="siker" x="9" y="7" id="9269" ban="0" job="basic" out="1" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="Socondor" x="4" y="4" id="9399" ban="0" job="basic" out="1" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="stillalive77" x="7" y="5" id="10681" ban="0" job="basic" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="1" name="Sturm" avatar="hordes/e/3/baac2bae_10892.jpg" x="7" y="5" id="10892" ban="0" job="eclair" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="TheFang" x="7" y="5" id="8176" ban="0" job="basic" out="0" baseDef="0">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="Tosh" x="7" y="5" id="13095" ban="0" job="basic" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="1" name="Tusor" x="7" y="5" id="9560" ban="0" job="eclair" out="0" baseDef="1">
+<![CDATA[]]>
+</citizen>
+<citizen dead="0" hero="0" name="xxGrindHardxx" avatar="hordes/5/7/640169e1_11298.jpg" x="7" y="5" id="11298" ban="0" job="basic" out="0" baseDef="0">
+<![CDATA[]]>
+</citizen>
+</citizens>
+<cadavers/>
+<map hei="12" wid="12">
+<zone x="7" y="0" nvt="0"/>
+<zone x="4" y="1" nvt="0" danger="2"/>
+<zone x="5" y="1" nvt="0"/>
+<zone x="6" y="1" nvt="0"/>
+<zone x="7" y="1" nvt="0"/>
+<zone x="3" y="2" nvt="0"/>
+<zone x="4" y="2" nvt="0"/>
+<zone x="5" y="2" nvt="0"/>
+<zone x="6" y="2" nvt="0"/>
+<zone x="7" y="2" nvt="0"/>
+<zone x="2" y="3" nvt="0"/>
+<zone x="3" y="3" nvt="0"/>
+<zone x="5" y="3" nvt="0"/>
+<zone x="6" y="3" nvt="0" tag="3"/>
+<zone x="7" y="3" nvt="0" danger="1"/>
+<zone x="8" y="3" nvt="0" danger="2"/>
+<zone x="2" y="4" nvt="0"/>
+<zone x="4" y="4" nvt="0"/>
+<zone x="5" y="4" nvt="0"/>
+<zone x="6" y="4" nvt="0" tag="5"/>
+<zone x="7" y="4" nvt="0" tag="2" danger="1">
+<building name="Abgelegenes Haus" type="20" dig="0">
+<![CDATA[Das Haus gehörte einem Bürger, der sich außerhalb der Stadt niederließ, um Verrat und Misstrauen aus dem Weg zu gehen. <strong>
+Die Hälfte seines Körpers liegt noch im Wohnzimmer</strong>
+.]]>
+</building>
+</zone>
+<zone x="8" y="4" nvt="0" tag="1"/>
+<zone x="9" y="4" nvt="0"/>
+<zone x="10" y="4" nvt="0"/>
+<zone x="11" y="4" nvt="0"/>
+<zone x="2" y="5" nvt="0"/>
+<zone x="3" y="5" nvt="0"/>
+<zone x="4" y="5" nvt="0"/>
+<zone x="5" y="5" nvt="0" tag="2"/>
+<zone x="6" y="5" nvt="0" tag="5"/>
+<zone x="7" y="5" nvt="0"/>
+<zone x="8" y="5" nvt="0"/>
+<zone x="9" y="5" nvt="0"/>
+<zone x="10" y="5" nvt="0" tag="5"/>
+<zone x="11" y="5" nvt="0"/>
+<zone x="4" y="6" nvt="0" danger="1"/>
+<zone x="5" y="6" nvt="0" tag="4" danger="2"/>
+<zone x="6" y="6" nvt="0"/>
+<zone x="7" y="6" nvt="0" tag="2"/>
+<zone x="8" y="6" nvt="0"/>
+<zone x="9" y="6" nvt="0"/>
+<zone x="10" y="6" nvt="0" tag="3"/>
+<zone x="11" y="6" nvt="0" tag="3"/>
+<zone x="5" y="7" nvt="0" tag="1" danger="1"/>
+<zone x="6" y="7" nvt="0" danger="2">
+<building name="Kosmetiklabor" type="6" dig="0">
+<![CDATA[In diesem düsteren Gebäude wurden früher Tierexperimente durchgeführt. Es riecht nach Kampfer, Äther und Aas... Dabei stehst du erst vor der Eingangstür...]]>
+</building>
+</zone>
+<zone x="7" y="7" nvt="0" danger="2"/>
+<zone x="8" y="7" nvt="0"/>
+<zone x="9" y="7" nvt="0"/>
+<zone x="10" y="7" nvt="0" tag="3"/>
+<zone x="11" y="7" nvt="0"/>
+<zone x="6" y="8" nvt="0" danger="1"/>
+<zone x="7" y="8" nvt="0" danger="2"/>
+<zone x="8" y="8" nvt="0"/>
+<zone x="9" y="8" nvt="0"/>
+<zone x="8" y="9" nvt="0"/>
+<zone x="9" y="9" nvt="0"/>
+</map>
+<upgrades total="0"/>
+<estimations>
+<e day="1" max="35" min="10" maxed="0"/>
+</estimations>
+</data>
+</hordes>

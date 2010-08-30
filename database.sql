@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Erstellungszeit: 27. August 2010 um 17:01
+-- Erstellungszeit: 30. August 2010 um 18:27
 -- Server Version: 5.0.51
 -- PHP-Version: 5.2.6-1+lenny8
 
@@ -18,6 +18,36 @@ SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 --
 -- Datenbank: `g_verdammt`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Tabellenstruktur für Tabelle `accesslog`
+--
+
+CREATE TABLE IF NOT EXISTS `accesslog` (
+  `id` int(11) NOT NULL auto_increment,
+  `seelenid` varchar(255) NOT NULL,
+  `time` int(11) NOT NULL,
+  `ip` varchar(32) NOT NULL,
+  `browser` text NOT NULL,
+  PRIMARY KEY  (`id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=55 ;
+
+-- --------------------------------------------------------
+
+--
+-- Tabellenstruktur für Tabelle `itemtype`
+--
+
+CREATE TABLE IF NOT EXISTS `itemtype` (
+  `id` int(11) NOT NULL,
+  `name` text NOT NULL,
+  `cat` varchar(64) NOT NULL,
+  `img` text NOT NULL,
+  `cat2` varchar(64) NOT NULL,
+  PRIMARY KEY  (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
 
@@ -40,7 +70,21 @@ CREATE TABLE IF NOT EXISTS `mapnote` (
   KEY `gameid` (`gameid`,`x`,`y`),
   KEY `gameid_2` (`gameid`),
   KEY `time` (`time`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=349 ;
+
+-- --------------------------------------------------------
+
+--
+-- Tabellenstruktur für Tabelle `stream_debug`
+--
+
+CREATE TABLE IF NOT EXISTS `stream_debug` (
+  `id` int(11) NOT NULL auto_increment,
+  `seelenid` varchar(255) NOT NULL,
+  `xml` mediumtext NOT NULL,
+  `time` int(11) NOT NULL,
+  PRIMARY KEY  (`id`)
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=6 ;
 
 -- --------------------------------------------------------
 
@@ -60,4 +104,4 @@ CREATE TABLE IF NOT EXISTS `xml` (
   KEY `seelenid` (`seelenid`),
   KEY `time` (`time`),
   KEY `gameid` (`gameid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=503 ;
