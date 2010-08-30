@@ -728,6 +728,7 @@ function GetDeathTypeIconHTML ($dtype,$txt="") {
 		case kDeathType_Infektion:		return img(kIconURL_infektion		,"Infektion. ".$txt); break;
 		case kDeathType_Dehydriert:		return img(kIconURL_dehydration		,"Dehydriert. ".$txt); break;
 		case kDeathType_ZombieAngriff:	return img(kIconURL_ZombieAngriff	,"ZombieAngriff. ".$txt); break;
+		case kDeathType_Kopfschuss:		return img(kIconURL_death			,("Kopfschuss. ").$txt); break;
 		case kDeathType_AccountDeleted:	return img(kIconURL_death			,("Account geloescht. ").$txt); break;
 	}
 	return img(kIconURL_death,"Unbekannt[".intval($dtype)."]. ".$txt);
@@ -776,6 +777,7 @@ function MyLoadGlobals () {
 	define("kDeathType_Aussenwelt",5);
 	define("kDeathType_ZombieAngriff",6);
 	define("kDeathType_Infektion",8);
+	define("kDeathType_Kopfschuss",9);
 	define("kDeathType_AccountDeleted",10);
 	
 	$timetxt = $xml->headers[0]->game[0]["datetime"]; // 2010-08-29 14:11:44
