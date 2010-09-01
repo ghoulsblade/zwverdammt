@@ -30,6 +30,7 @@ Copyright (c) 2010 <copyright holders>
 
 require_once("defines.php");
 require_once("roblib.php");
+require_once("lib.verdammt.php");
 function href ($url,$title=false) { return "<a href='$url'>".($title?$title:$url)."</a>"; }
 
 //~ function MyEscXML ($txt) { return htmlspecialchars($txt); } // ö->uuml;
@@ -106,7 +107,7 @@ if (isset($_REQUEST["download_wiki"])) {
 	$itemtypes = sqlgettable("SELECT * FROM itemtype");
 	$i = 0;
 	foreach ($itemtypes as $o) {
-		if ($o->wiki_src != "" && $o->wiki_html != "") continue;
+		if (trim($o->wiki_src) != "" && trim($o->wiki_html) != "") continue;
 		if ($i >= 120) break; else ++$i;
 		$url_html = "http://nobbz.de/wiki/index.php?title=".urlencode($o->name); echo $o->id." ".href($url_html)."<br>\n";
 		$url_wiki = "http://nobbz.de/wiki/index.php?action=edit&title=".urlencode($o->name); echo $o->id." ".href($url_wiki)."<br>\n";
@@ -161,15 +162,9 @@ if (isset($_REQUEST["refresh_other"])) {
 
 $gShowAvatars = false;
 
+
 $temp_seelenid = isset($_COOKIE["SeelenID"]) ? $_COOKIE["SeelenID"] : false;
-if ($temp_seelenid) {
-	$o = false;
-	$o->seelenid = $temp_seelenid;
-	$o->ip = $_SERVER["REMOTE_ADDR"];
-	$o->browser = $_SERVER["HTTP_USER_AGENT"];
-	$o->time = time();
-	sql("INSERT INTO accesslog SET ".obj2sql($o));
-}
+if ($temp_seelenid) LogAccess($temp_seelenid);
 $gUseSampleData = isset($_REQUEST["sample"]);
 if ($gUseSampleData) $temp_seelenid = "abcdefghijklmnopqrstuvwxyz";
 

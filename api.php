@@ -24,18 +24,22 @@ Copyright (c) 2010 <copyright holders>
 
 require_once("defines.php");
 require_once("roblib.php");
+require_once("lib.verdammt.php");
 
 
 $xml = new SimpleXMLElement('<api/>');
 
-if (isset($_REQUEST["gameid"])) {
-	$limits = sqlgetobject("SELECT MIN(x) as minx,MAX(x) as maxx,MIN(y) as miny,MAX(y) as maxy FROM mapnote WHERE gameid = ".intval($_REQUEST["gameid"]));
+function ExportMapNotes ($xml,$gameid) {
+	$gameid = intval($gameid);
+	$limits = sqlgetobject("SELECT MIN(x) as minx,MAX(x) as maxx,MIN(y) as miny,MAX(y) as maxy FROM mapnote WHERE gameid = $gameid");
 	$mapnotes = $xml->addChild('mapnotes');
+	$mapnotes->addAttribute("limits",obj2sql($limits));
+	$mapnotes->addAttribute("gameid",$gameid);
 	//~ $mapnotes->addAttribute("limits",obj2sql($limits));
 	if ($limits) {
 		for ($y=intval($limits->miny);$y<=intval($limits->maxy);++$y) 
 		for ($x=intval($limits->minx);$x<=intval($limits->maxx);++$x) {
-			$o = sqlgetobject("SELECT * FROM mapnote WHERE gameid = ".intval($_REQUEST["gameid"])." AND x = $x AND y = $y ORDER BY id DESC LIMIT 1");
+			$o = sqlgetobject("SELECT * FROM mapnote WHERE gameid = $gameid AND x = $x AND y = $y ORDER BY id DESC LIMIT 1");
 			if ($o) {
 				// id 	time 	day 	gameid 	x 	y 	icon 	txt 	seelenid 	zombies
 				$node = $mapnotes->addChild('note',utf8_encode($o->txt));
@@ -48,8 +52,14 @@ if (isset($_REQUEST["gameid"])) {
 			}
 		}
 	}
-	
-	//~ $mapnotes->addAttribute('type');
+}
+
+
+if (isset($_REQUEST["gameid"])) {
+	ExportMapNotes($xml,$_REQUEST["gameid"]);
+} else if (isset($_REQUEST["seelenid"])) {
+	LogAccess($_REQUEST["seelenid"],"api");
+	ExportMapNotes($xml,GetGameIDForSeelenID($_REQUEST["seelenid"]));
 } else {
 	$o_cities = sqlgettable("SELECT *,MAX(day) as maxday,MAX(time) maxt FROM xml GROUP BY gameid");
 	$x_cities = $xml->addChild('cities');
