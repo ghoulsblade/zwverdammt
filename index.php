@@ -2,6 +2,10 @@
 // uebersicht und karte fuer das browsergame www.dieverdammten.de
 // note : xml api via http://www.php.net/manual/de/book.simplexml.php
 // note : Tagebuch+GesamtFazit Geniales Gehöft (rang1) http://forum.der-holle.de/viewtopic.php?f=8&t=55&start=30
+// note : http://02.chat.mibbit.com/?channel=%23dieverdammten&server=irc.mibbit.net&autoConnect=true&nick=teeest123
+// note : http://wiki.mibbit.com/index.php/Uri_parameters
+// note : Ocoma tipp : http://tools.mibbit.com/widget-uri-creator/
+// note : ruinen texte aus wiki (fundliste)
 /*
 Copyright (c) 2010 <copyright holders>
 
@@ -76,6 +80,51 @@ $gIconText = array(
 	6=>"notiz",
 );
 
+
+function GetTextBetween ($text,$start,$end,$startskipto=false,$bReturnFullOnFail=false) {
+	if ($text === false) return $bReturnFullOnFail?$text:false;
+	$pos0 = strpos($text,$start);
+	if ($pos0 === false) return $bReturnFullOnFail?$text:false;
+	$pos0 += strlen($start);
+	if ($startskipto) {
+		$pos0 = strpos($text,$startskipto,$pos0);
+		if ($pos0 === false) return $bReturnFullOnFail?$text:false;
+		$pos0 += strlen($startskipto);
+	}
+	$pos1 = strpos($text,$end,$pos0);
+	if ($pos1 === false) return $bReturnFullOnFail?$text:false;
+	return substr($text,$pos0,$pos1-$pos0);
+}
+function ExtractWikiTextArea ($txt)		{ return GetTextBetween($txt,"<textarea","</textarea",">",true); } // <textarea name="wpTextbox1" id="wpTextbox1" cols="80" rows="25" tabindex="1" accesskey=",">
+function ExtractWikiPageContent ($txt)	{ return GetTextBetween($txt,"<!-- start content -->",'<div class="printfooter">',false,true); } // <textarea name="wpTextbox1" id="wpTextbox1" cols="80" rows="25" tabindex="1" accesskey=",">
+
+
+
+if (isset($_REQUEST["download_wiki"])) {
+	echo "download wiki entries<br>\n";
+	set_time_limit(0); // disable max execution time
+	$itemtypes = sqlgettable("SELECT * FROM itemtype");
+	$i = 0;
+	foreach ($itemtypes as $o) {
+		if ($o->wiki_src != "" && $o->wiki_html != "") continue;
+		if ($i >= 120) break; else ++$i;
+		$url_html = "http://nobbz.de/wiki/index.php?title=".urlencode($o->name); echo $o->id." ".href($url_html)."<br>\n";
+		$url_wiki = "http://nobbz.de/wiki/index.php?action=edit&title=".urlencode($o->name); echo $o->id." ".href($url_wiki)."<br>\n";
+		$new = false;
+		$new->wiki_src = ExtractWikiTextArea(file_get_contents($url_wiki));
+		$new->wiki_html = ExtractWikiPageContent(file_get_contents($url_html));
+		//~ echo "<textarea cols=80 rows=20>".$wiki_src."</textarea>";
+		sql("UPDATE itemtype SET ".obj2sql($new)." WHERE id = ".intval($o->id));
+		
+		/*
+		Warning: file_get_contents(http://nobbz.de/wiki/index.php?title=Reparturset+%28kaputt%29) 
+		Warning: file_get_contents(http://nobbz.de/wiki/index.php?title=Angebissene+H%C3%A4hnchenfl%C3%BCgel) 
+		Warning: file_get_contents(http://nobbz.de/wiki/index.php?title=Kanisterpumpe+%28zerlegt%29) 
+		Warning: file_get_contents(http://nobbz.de/wiki/index.php?title=Unverarbeitete+Blechplatten)
+		*/
+	}
+	exit(0);
+}
 
 if (isset($_REQUEST["refresh_other"])) {
 	//~ $arr = sqlgettable("SELECT *,MAX(time) as maxtime FROM accesslog GROUP BY seelenid");
@@ -558,9 +607,13 @@ Deine Webseite kann dann nur noch über das Verzeichnis externer Anwendungen aufg
 
 if (isset($_REQUEST["sktest"])) {
 	//~ $url = "http://www.dieverdammten.de/xml/ghost?k=".urlencode(kSeelenID).";sk=".kDV_SiteKey;
-	$url = "http://www.dieverdammten.de/xml?k=".urlencode(kSeelenID).";sk=".kDV_SiteKey;
+	//~ $url = "http://www.dieverdammten.de/xml/ghost?k=".urlencode(kSeelenID)."&sk=".kDV_SiteKey;
+	//~ $url = "http://www.dieverdammten.de/xml/ghost?key=".urlencode(kSeelenID)."&sk=".kDV_SiteKey;
+	$url = "http://www.dieverdammten.de/xml/ghost?k=XXX_MEINE_SEELENID_XXX;sk=XXX_MEIN_SITEKEY_XXX";
+	// TODO : strtr
 	
-	echo "url=$url<br><hr>\n\n\n";
+	//~ echo "url=$url<br><hr>\n\n\n";
+	echo "SiteKeyTest<br>\n";
 	exit(file_get_contents($url));
 }
 
@@ -609,6 +662,7 @@ function PrintHeaderSection () { // login,links,disclaimer
 			href("http://forum.der-holle.de/viewtopic.php?f=42&t=106","ForenThread")." ".
 			href("http://dvmap.nospace.de/index.php","DVMap")." ".
 			href("http://emptycookie.de/index.php?id=".(kSeelenID?kSeelenID:""),"EmptyCookie")." ".
+			href("http://verdammt.mnutz.de/","Baldwin","title='in entwicklung'")." ".
 			href("http://nobbz.de/wiki/","NobbzWiki")." ".
 			href("http://forum.der-holle.de/","HolleForum")." ".
 			href("http://chat.mibbit.com/?channel=%23dieverdammten&server=irc.mibbit.net","Chat")." ".
