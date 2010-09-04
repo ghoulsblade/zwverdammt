@@ -8,6 +8,8 @@
 // note : ruinen texte aus wiki (fundliste)
 // note : idee : seelen-auszeichnung nicht im stream, aber hängung(todesart) und ban(bürgerliste) aus städten in der db kriegt man
 // note : idee :  auswertung des stadtlogs, also alles copy-pasten , dann kriegt man hübsch angezeigt wer interessante sachen rausgenommen hat, und angriffe etc um sabos früh zu erkennen.  (auch nutzung von werkstatt ohne säge usw)
+// note : idee : ruine-noch-nicht-ausgegraben : möglichkeiten anhand entfernung auflisten (wiki)
+// note : wunsch nakatomy : aufklärer kann ruinen in der nähe? sehen ohne das das feld aufgedeckt ist : ruinen icon ? 
 
 /*
 Copyright (c) 2010 <copyright holders>
