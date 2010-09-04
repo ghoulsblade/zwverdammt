@@ -1,16 +1,6 @@
 <?php
 // uebersicht und karte fuer das browsergame www.dieverdammten.de
 // note : xml api via http://www.php.net/manual/de/book.simplexml.php
-// note : Tagebuch+GesamtFazit Geniales Gehöft (rang1) http://forum.der-holle.de/viewtopic.php?f=8&t=55&start=30
-// note : http://02.chat.mibbit.com/?channel=%23dieverdammten&server=irc.mibbit.net&autoConnect=true&nick=teeest123
-// note : http://wiki.mibbit.com/index.php/Uri_parameters
-// note : Ocoma tipp : http://tools.mibbit.com/widget-uri-creator/
-// note : ruinen texte aus wiki (fundliste)
-// note : idee : seelen-auszeichnung nicht im stream, aber hängung(todesart) und ban(bürgerliste) aus städten in der db kriegt man
-// note : idee :  auswertung des stadtlogs, also alles copy-pasten , dann kriegt man hübsch angezeigt wer interessante sachen rausgenommen hat, und angriffe etc um sabos früh zu erkennen.  (auch nutzung von werkstatt ohne säge usw)
-// note : idee : ruine-noch-nicht-ausgegraben : möglichkeiten anhand entfernung auflisten (wiki)
-// note : wunsch nakatomy : aufklärer kann ruinen in der nähe? sehen ohne das das feld aufgedeckt ist : ruinen icon ? 
-
 /*
 Copyright (c) 2010 <copyright holders>
 
@@ -31,6 +21,48 @@ Copyright (c) 2010 <copyright holders>
  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.
+*/
+
+/*
+IDEEN : 
+* tagebuch tools, beispiel : Geniales Gehöft (rang1) http://forum.der-holle.de/viewtopic.php?f=8&t=55&start=30 (GesamtFazit interessant btw)
+* eingebauter chat:  http://02.chat.mibbit.com/?channel=%23dieverdammten&server=irc.mibbit.net&autoConnect=true&nick=teeest123
+** http://wiki.mibbit.com/index.php/Uri_parameters       Ocoma tipp : http://tools.mibbit.com/widget-uri-creator/
+* tooltip : ruinen texte aus wiki (fundliste)
+* sabo warnung : seelen-auszeichnung nicht im stream, aber hängung(todesart) und ban(bürgerliste) aus städten in der db kriegt man
+* auswertung des stadtlogs, also alles copy-pasten , dann kriegt man hübsch angezeigt wer interessante sachen rausgenommen hat, und angriffe etc um sabos früh zu erkennen.  (auch nutzung von werkstatt ohne säge usw)
+* tooltip : ruine-noch-nicht-ausgegraben : möglichkeiten anhand entfernung auflisten (wiki)
+* ruinen-icon : aufklärer kann ruinen in der nähe? sehen ohne das das feld aufgedeckt ist (zombiezahl?)
+* optimale aufklärer verteilung für stadtpos+kartengrösse berechnen (zombiezahl in umgebung->ruinen), 18ap+rückkehr, keine drogen/alk.
+* stadtauflistung mit suchfunktion (stadtname,spielername), und verschiedene stats nach denen man sortieren kann (tage,leute am leben, vieleicht paar bewertungen, gesamt def, dev vs zombies, vll sogar abschätzung der lebenserwartung nach statistischem durchschnitt der zombie-angriffe vs baumöglichkeiten mit material+ap der lebenden einwohner inklusive bankvorräten)
+* rückblick über mehrere tage, "wie sah stadt x gestern aus"
+* eingetragene exp und leute hinterlassen "spur" (leer, oder fussstapfen)
+
+IDEEN : style : 
+* style : starwars:jawas/schrotthändler http://images3.wikia.nocookie.net/__cb20090730135822/starwars/images/2/27/JawaEngineer-SWGTCGAoD.jpg
+* style : fallout ? 
+bilder meta/mola : 
+	http://www.geo-reisecommunity.de/bild/regular/38772/Duenen-von-Merzouga.jpg
+	http://www.geo-reisecommunity.de/bild/regular/46336/Halbwueste-Karoo-erodierter-Fels-auf-den-Huegeln.jpg
+	http://img.fotocommunity.com/photos/2858888.jpg
+	http://giz.me/wp-content/uploads/2008/12/fallout_playground.jpg
+	http://www.pcgameshardware.de/screenshots/medium/2008/11/Fallout3_02.jpg
+	http://www.ps3blog.de/wp-content/gallery/fout200808/fallout-3_2008_08-20-08_03.jpg
+	http://blog.gcshop.ch/pebble/images/november/fallout3.jpg
+	http://www.wallpaperez.info/de/games/Fallout-3-nuclear-mountain-1007.html
+	http://olbertz.de/blog/wp-content/uploads/2008/12/fallout3.jpg
+	http://www.pcgameshardware.de/screenshots/medium/2008/11/Fallout3_04.jpg
+		(sidenote, nice logo new vegas : http://onipepper.de/wp-content/uploads/2010/02/fallout_newvegas.jpg)
+	green console style (also bioshock) http://t1.gstatic.com/images?q=tbn:n3Oxc-m5SkSM_M:http://www.ps-spotlight.de/~pics/review/fallout3/fallout3_3.jpg&t=1
+		http://forum.exp.de/members/allucard-albums-games-picture7-der-kleine-helfer-pipboy-3000-fallout-3.jpg
+	http://www.gamers.at/images/screenshots/screenshot_fallout_online_03_35188.jpg
+	http://fidgit.com/Fallout_3_diaries_grocer.jpg
+	hightech map : http://www.forumla.de/attachments/sony-ps3-forum/28041d1231015479-fallout-3-loesungen-hinweise-ratschlaege-unbenannt.jpg
+	mission map with annotations : http://t1.gstatic.com/images?q=tbn:IufZzObCwlbevM:http://i4.photobucket.com/albums/y109/Ultradyne/Fallout3RPmap.jpg&t=1
+	ruined highway with western style houses : http://www.play3.de/wp-content/gallery/fallout_new_vegas_060310/fallout-new-vegas_2010_03-06-10_04.jpg
+	
+	http://verdammten.bplaced.net/phpBB3/styles/DirtyBoard2.0/theme/images/bg_body.jpg
+	http://etacar.put.poznan.pl/piotr.pieranski//Physics%20Around%20Us/Sand%20waves%2010.jpg
 */
 
 if (!file_exists("defines.php")) exit('error: please rename "defines.dist.php" to "defines.php"');
