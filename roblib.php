@@ -185,4 +185,6 @@ function pathinfo2($path,$info="extension") {
 // function dirname($path) { return pathinfo2($path,$info="dirname"); } // /var/bla
 function base($path) { return pathinfo2($path,$info="basename"); } // test.txt
 function ext($path) { return strtolower(pathinfo2($path,$info="extension")); } // txt , in lowercase
+
+// no newline at end of file, otherwise header/cookie will not work if called after including this file
 ?>
