@@ -6,6 +6,9 @@
 // note : http://wiki.mibbit.com/index.php/Uri_parameters
 // note : Ocoma tipp : http://tools.mibbit.com/widget-uri-creator/
 // note : ruinen texte aus wiki (fundliste)
+// note : idee : seelen-auszeichnung nicht im stream, aber hängung(todesart) und ban(bürgerliste) aus städten in der db kriegt man
+// note : idee :  auswertung des stadtlogs, also alles copy-pasten , dann kriegt man hübsch angezeigt wer interessante sachen rausgenommen hat, und angriffe etc um sabos früh zu erkennen.  (auch nutzung von werkstatt ohne säge usw)
+
 /*
 Copyright (c) 2010 <copyright holders>
 
@@ -99,7 +102,14 @@ function GetTextBetween ($text,$start,$end,$startskipto=false,$bReturnFullOnFail
 function ExtractWikiTextArea ($txt)		{ return GetTextBetween($txt,"<textarea","</textarea",">",true); } // <textarea name="wpTextbox1" id="wpTextbox1" cols="80" rows="25" tabindex="1" accesskey=",">
 function ExtractWikiPageContent ($txt)	{ return GetTextBetween($txt,"<!-- start content -->",'<div class="printfooter">',false,true); } // <textarea name="wpTextbox1" id="wpTextbox1" cols="80" rows="25" tabindex="1" accesskey=",">
 
-
+function GetWikiSrcRedirect ($src) {
+	
+	if ((stripos($src,"#redirect") !== false || stripos($src,"#weiterleitung") !== false) && eregi("#[a-z]+[ \t]+\\[\\[(.+)\\]\\]",$src,$r)) {
+		echo "GetWikiSrcRedirect 1=".$r[1]."<br>\n";
+		return $r[1];
+	}
+	return false;
+}
 
 if (isset($_REQUEST["download_wiki"])) {
 	echo "download wiki entries<br>\n";
@@ -107,13 +117,21 @@ if (isset($_REQUEST["download_wiki"])) {
 	$itemtypes = sqlgettable("SELECT * FROM itemtype");
 	$i = 0;
 	foreach ($itemtypes as $o) {
-		if (trim($o->wiki_src) != "" && trim($o->wiki_html) != "") continue;
+		$redirect = GetWikiSrcRedirect($o->wiki_src);
+		if (trim($o->wiki_src) != "" && trim($o->wiki_html) != "" && !$redirect) continue;
+		// #redirect [[HÃ¤hnchenflÃ¼gel]]
 		if ($i >= 120) break; else ++$i;
-		$url_html = "http://nobbz.de/wiki/index.php?title=".urlencode($o->name); echo $o->id." ".href($url_html)."<br>\n";
-		$url_wiki = "http://nobbz.de/wiki/index.php?action=edit&title=".urlencode($o->name); echo $o->id." ".href($url_wiki)."<br>\n";
+		$wikiname = $o->name;
+		
+		$wikiname = eregi_replace("\\([0-9]+ [a-z]+\\)","(gefüllt)",$wikiname);
+		
+		// (3 rationen/ladungen) -> gefüllt
+		
+		$url_html = "http://nobbz.de/wiki/index.php?title=".urlencode($wikiname); echo $o->id." ".href($url_html)."<br>\n";
+		$url_wiki = "http://nobbz.de/wiki/index.php?action=edit&title=".urlencode($redirect ? $redirect : $wikiname); echo $o->id." ".href($url_wiki)."<br>\n";
 		$new = false;
+		if (trim($new->wiki_html) == "") $new->wiki_html = ExtractWikiPageContent(file_get_contents($url_html));
 		$new->wiki_src = ExtractWikiTextArea(file_get_contents($url_wiki));
-		$new->wiki_html = ExtractWikiPageContent(file_get_contents($url_html));
 		//~ echo "<textarea cols=80 rows=20>".$wiki_src."</textarea>";
 		sql("UPDATE itemtype SET ".obj2sql($new)." WHERE id = ".intval($o->id));
 		
@@ -129,13 +147,14 @@ if (isset($_REQUEST["download_wiki"])) {
 
 if (isset($_REQUEST["refresh_other"])) {
 	//~ $arr = sqlgettable("SELECT *,MAX(time) as maxtime FROM accesslog GROUP BY seelenid");
-	$arr = sqlgettable("SELECT id,seelenid,cityname,MAX(time) as maxtime FROM xml GROUP BY seelenid");
+	$arr = sqlgettable("SELECT id,seelenid,cityname,MAX(time) as maxtime FROM xml GROUP BY seelenid ORDER BY maxtime");
 	echo count($arr)." found "."<br>\n";
 	$today_start_t = floor(time() / (24*3600))*24*3600;
 	$seelenid = false;
 	$otherid = false;
 	foreach ($arr as $o) {
-		if ($o->maxtime < $today_start_t) {
+		//~ if ($o->maxtime < $today_start_t) {
+		if ($o->maxtime < time() - 6*3600) {
 			echo "refresh id ".$o->id." ".$o->cityname." ".$seelenid."<br>\n";
 			$seelenid = $o->seelenid;
 			$otherid = $o->id;
@@ -785,7 +804,7 @@ function GetDeathTypeIconHTML ($dtype,$txt="") {
 function MyLoadGlobals () {
 	global $xml,$icon_url,$icon_url_item,$avatar_url,$city;
 	global $def,$gGameDay,$gGameID;
-	global $gCitizens,$buerger_draussen,$buerger_alive;
+	global $gCitizens,$buerger_draussen,$buerger_alive,$buerger_hero;
 
 	$icon_url			= $xml->headers[0]["iconurl"];
 	$icon_url_item		= $xml->headers[0]["iconurl"]."item_";
@@ -814,6 +833,7 @@ function MyLoadGlobals () {
 	define("kIconURL_hero_def"		, $icon_url."item_shield.gif");
 	define("kIconURL_wachturm"		, $icon_url."item_tagger.gif");
 	define("kIconURL_statistic"		, $icon_url."item_electro.gif");
+	define("kIconURL_ruindig"		, $icon_url."tag_7.gif");
 	
 	define("kIconURL_aussenwelt"	, $icon_url."r_doutsd.gif");
 	define("kIconURL_infektion"		, $icon_url."r_dinfec.gif");
@@ -844,9 +864,11 @@ function MyLoadGlobals () {
 	$gBuergerOnPos = array();
 	$buerger_draussen = 0;
 	$buerger_alive = 0;
+	$buerger_hero = 0;
 	$gCitizens = $xml->data[0]->citizens[0]->citizen;
 	if ($gCitizens) foreach ($gCitizens as $citizen) { 
 		if ($citizen["dead"] == "0") ++$buerger_alive;
+		if ($citizen["hero"] != "0") ++$buerger_hero;
 		$x = intval($citizen["x"]);
 		$y = intval($citizen["y"]);
 		if ($x == kCityX && $y == kCityY) {} else { ++$buerger_draussen; }
@@ -968,6 +990,7 @@ echo "Stadt=<b>".utf8_decode($city["city"])."</b>";
 echo " Tag=".$gGameDay." (".date("Y-m-d H:i",kRecordTime).")";
 echo " ".img($icon_url."small_water.gif","Wasser").":".$city["water"];
 echo " &Uuml;berlebende=".$buerger_alive;
+echo " Helden=".$buerger_hero;
 echo " draussen=".$buerger_draussen;
 if ($gDemo) echo " <b>(demo/offline daten)</b>";
 echo "<br>\n";
@@ -990,7 +1013,7 @@ if ($gGameDay == 1) { echo ("bau dein Feldbett zu einem Zelt aus, aber NICHT zu 
 
 
 $f = GetBuildingLevel("Forschungsturm");
-$leer_regen = array(0,25,37,49,61,73,85,99,"??");
+$leer_regen = array("fast 0",25,37,49,61,73,85,99,"??");
 $p0 = $leer_regen[$f+1];
 $p1 = $leer_regen[$f+2];
 echo LinkBuilding("Forschungsturm")." ".(($f >= 0)?"Stufe $f":"nicht gebaut")." -&gt; Chance das ein leeres Feld sich regeneriert : ".$p0."% (nächste:".$p1."%)<br>\n";
@@ -1082,7 +1105,9 @@ foreach ($gRuinen as $r) {
 	$x = $r["x"] - kCityX;
 	$y = kCityY - $r["y"];
 	$textid = "idRuinText".$i;
-	echo "($x/$y)[".(abs($x)+abs($y))."AP]".LinkRuin(utf8_decode($r["node"]["name"]))." ".href("javascript:ShowHide(\"".$textid."\")","(text)")."<br>\n";
+	$dig = $r["node"]["dig"];
+	$dithtml = ($dig && $dig>0)?(" ($dig ".img(kIconURL_ruindig).")"):"";
+	echo "($x/$y)[".(abs($x)+abs($y))."AP]".LinkRuin(utf8_decode($r["node"]["name"])).$dithtml." ".href("javascript:ShowHide(\"".$textid."\")","(text)")."<br>\n";
 	echo "<span style='display:none;' id='".$textid."'>".htmlspecialchars(utf8_decode($r["node"]))."<br></span>\n";
 }
 
