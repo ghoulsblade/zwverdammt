@@ -31,6 +31,8 @@ Copyright (c) 2010 <copyright holders>
  THE SOFTWARE.
 */
 
+if (!file_exists("defines.php")) exit('error: please rename "defines.dist.php" to "defines.php"');
+
 require_once("defines.php");
 require_once("roblib.php");
 require_once("lib.verdammt.php");
