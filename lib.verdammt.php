@@ -9,4 +9,3 @@ function LogAccess ($seelenid,$context="main") {
 	sql("INSERT INTO accesslog SET ".obj2sql($o));
 }
 function GetGameIDForSeelenID ($seelenid) { return sqlgetone("SELECT gameid FROM xml WHERE ".arr2sql(array("seelenid"=>$seelenid))." ORDER BY id DESC LIMIT 1"); }
-?>

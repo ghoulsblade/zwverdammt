@@ -186,5 +186,4 @@ function pathinfo2($path,$info="extension") {
 function base($path) { return pathinfo2($path,$info="basename"); } // test.txt
 function ext($path) { return strtolower(pathinfo2($path,$info="extension")); } // txt , in lowercase
 
-// no newline at end of file, otherwise header/cookie will not work if called after including this file
-?>
+// no close-tag with newline at end of file, otherwise header/cookie will not work if called after including this file
