@@ -666,19 +666,21 @@ for ($y=0;$y<kMapH;++$y) { echo "gDVNavi_MapClass[$y] = new Array("; for ($x=0;$
 
 ?>
 
+kDVNaviMaxScore				= 1000;
+kDVNavi2ndMaxScore			= 100; // zweithoechste moegliche punktzahl
+
 gDVNavi_ScoreTable_Unexplored = new Object();
 gDVNavi_ScoreTable_Unexplored.city = 0;
 gDVNavi_ScoreTable_Unexplored.old = 5;
 gDVNavi_ScoreTable_Unexplored.leer = 0;
 gDVNavi_ScoreTable_Unexplored.voll = 10;
-gDVNavi_ScoreTable_Unexplored.unexp = 1000;
+gDVNavi_ScoreTable_Unexplored.unexp = kDVNaviMaxScore;
 gDVNavi_ScoreTable_Unexplored.ruin = 100;
 
-gMaxScorePerField = 0;
 
 function InitScoreMap (scoretable) {
-	gMaxScorePerField = 0;
-	for (var k in scoretable) gMaxScorePerField = Math.max(gMaxScorePerField,scoretable[k]);
+	//~ gMaxScorePerField = 0;
+	//~ for (var k in scoretable) gMaxScorePerField = Math.max(gMaxScorePerField,scoretable[k]);
 	for (y=0;y<gDVNavi_MapH;++y) for (x=0;x<gDVNavi_MapW;++x) gDVNavi_MapScore[y][x] = scoretable[gDVNavi_MapClass[y][x]];
 }
 
@@ -709,22 +711,38 @@ function clonemod1 (t,k1,v1) { // copy assoc-array t, and modify one value by ke
 	return res;
 }
 
+function DVNavi_Heuristic (x,y,ap) {
+	// determine the area than can be travalled, and see how often we can achieve max-score in it
+	var e = Math.floor((ap - ReturnAP(x,y)) / 2);
+	var minx = Math.max(1,Math.min(gDVNavi_MapW,	Math.min(x,gDVNavi_CityX)-e	));
+	var maxx = Math.max(1,Math.min(gDVNavi_MapW,	Math.max(x,gDVNavi_CityX)+e	));
+	var miny = Math.max(1,Math.min(gDVNavi_MapH,	Math.min(y,gDVNavi_CityY)-e	));
+	var maxy = Math.max(1,Math.min(gDVNavi_MapH,	Math.max(y,gDVNavi_CityY)+e	));
+	var maxc = 0;
+	for (var ty=miny;ty<=maxy && maxc < ap;++ty) 
+	for (var tx=minx;tx<=maxx;++tx) if (Score(tx,ty) >= kDVNaviMaxScore) { ++maxc; if (maxc >= ap) break; }
+	return maxc * kDVNaviMaxScore + (ap - maxc) * kDVNavi2ndMaxScore; // an upper limit for the score achievable with the remaining ap
+}
+
+
 function AddExpedition (x,y,ap,visited,score,txt) {
-	if (ap >= 0 && Valid(x,y) && ReturnAP(x,y) <= ap) { 
-		var pos = (x-gDVNavi_CityX) + "/" + (gDVNavi_CityY-y); // as string
-		if (!visited[pos]) score += Score(x,y);
-		if (score + ap*gMaxScorePerField > gMinScore) {
-			var newexp = new Object();
-			newexp.x = x;
-			newexp.y = y;
-			newexp.ap = ap;
-			newexp.score = score;
-			newexp.visited = clonemod1(visited,pos,true);
-			newexp.txt = txt+" "+pos;
-			gExpeditions.push(newexp);
-			gExpeditionC = gExpeditionC + 1;
-		}
-	}
+	if (ap < 0 || !Valid(x,y) || ReturnAP(x,y) > ap) return;
+	var pos = (x-gDVNavi_CityX) + "/" + (gDVNavi_CityY-y); // as string
+	if (!visited[pos]) score += Score(x,y);
+	if (score + ap*kDVNaviMaxScore <= gMinScore) return;
+	var heur = DVNavi_Heuristic(x,y,ap);
+	if (score + heur <= gMinScore) return;
+	
+	var newexp = new Object();
+	newexp.x = x;
+	newexp.y = y;
+	newexp.ap = ap;
+	newexp.score = score;
+	newexp.heur = heur;
+	newexp.visited = clonemod1(visited,pos,true);
+	newexp.txt = txt+" "+pos;
+	gExpeditions.push(newexp);
+	gExpeditionC = gExpeditionC + 1;
 }
 
 function InExp (e,x,y) {
