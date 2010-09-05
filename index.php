@@ -514,6 +514,12 @@ width:450px;
 .map {	
 	display:inline;
 }
+.dvnavimap * {
+	line-height:5px;
+}
+.map * {
+	line-height:5px;
+}
 .bframe {
 	border:1px solid black;
 }
@@ -562,9 +568,6 @@ width:450px;
 	width:20px;
 	// padding:0px;
 	margin:2px 0px 0px 0px; // top,bottom,left,right
-}
-.dvnavimap * {
-	line-height:5px;
 }
 
 a img { border:0px; }
@@ -737,11 +740,12 @@ function DVNavi_Execute (ap) {
 	gExpeditionMaxAP = ap;
 	InitScoreMap(gDVNavi_ScoreTable_Unexplored);
 	gDVNaviConsole = document.getElementById("idMapCellInfo");
-	gDVNaviConsole.innerHTML += "<br>\n";
+	//~ gDVNaviConsole.innerHTML += "<br>\n";
 	gDVNaviStatus = document.getElementById("idDVNaviStatus");
 	AddExpedition(gDVNavi_CityX,gDVNavi_CityY,gExpeditionMaxAP,new Object(),0,"");
 	gDVNavi_Steps = 0;
 	DVNavi_StepBlock();
+	return false;
 }
 	
 function DVNavi_StepBlock () { // delayed execution to avoid browser hang
