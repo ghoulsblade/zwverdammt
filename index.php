@@ -598,6 +598,157 @@ function ShowHide (id) {
 
 function SetMapMode (d) { MyAjaxGet("?ajax=mapmode&mapmode="+escape(d)+"&gameid="+escape(<?=$gGameID?>),"idMapContainer"); }
 
+// ***** ***** ***** ***** *****  DVNavi START
+
+gExpeditionMaxAP = 24;
+
+<?php
+function DVNaviGetMapScore($x,$y) {
+	if ($x == kCityX && $y == kCityY) return 0;
+	$data = Map($x,$y);
+	if (!$data) return 1000; // unexplored -> sure that it is NONEMPTY, could have ruin
+	$rx = $x-kCityX;
+	$ry = kCityY-$y;
+	$o = GetMapNote($rx,$ry);
+	global $gGameDay;
+	if ($o && (int)$o->day == (int)$gGameDay) { // von heute
+		if ($o->icon == kIconID_DigVoll) return 10;
+		if ($o->icon == kIconID_DigLeer) return 0;
+	}
+	return 5; // old
+}
+echo "gDVNavi_MapW = ".kMapW.";\n";
+echo "gDVNavi_MapH = ".kMapH.";\n";
+echo "gDVNavi_CityX = ".(kCityX+1).";\n";
+echo "gDVNavi_CityY = ".(kCityY+1).";\n";
+echo "gDVNavi_MapScore = new Array();\n";
+$maxc = 0;
+for ($y=0;$y<kMapH;++$y) { echo "gDVNavi_MapScore[$y] = new Array("; for ($x=0;$x<kMapW;++$x) { $c = DVNaviGetMapScore($x,$y); $maxc = max($maxc,$c); echo "$c,"; } echo "0);\n"; }
+echo "gMaxScorePerField = $maxc;\n";
+
+?>
+
+
+gMap = {}
+for (y=1;y<=gDVNavi_MapH;++y) { var row = new Array(); gMap[y] = row; for (x=1;x<=gDVNavi_MapW;++x) { row[x] = new Object(); } } // every cell is a table
+function Map			(x,y) { return gMap[y][x]; }
+function Score			(x,y) { return gDVNavi_MapScore[y-1][x-1]; } // gMap indices are one-based, gDVNavi_MapScore zero-based
+function IsCity			(x,y) { return x == gDVNavi_CityX && y == gDVNavi_CityY; }
+function Valid			(x,y) { return x >= 1 && x <= gDVNavi_MapW && y >= 1 && y <= gDVNavi_MapH; }
+function ReturnAP		(x,y) { return Math.abs(x-gDVNavi_CityX) + Math.abs(y-gDVNavi_CityY); }
+
+// expeditions
+
+gExpeditions = new Array();
+gExpeditionC = 0;
+gFinishedExp = new Array();
+gMinScore = 0;
+gBestExpPath = "";
+gDVNaviConsole = false;
+gDVNaviStatus = false;
+
+function clonemod1 (t,k1,v1) { // copy assoc-array t, and modify one value by key k1 -> v1
+	var res = new Object(); 
+	for (var k in t) res[k] = t[k];
+	res[k1] = v1;
+	return res;
+}
+
+function AddExpedition (x,y,ap,visited,score,txt) {
+	if (ap >= 0 && Valid(x,y) && ReturnAP(x,y) <= ap) { 
+		var pos = (x-gDVNavi_CityX) + "/" + (gDVNavi_CityY-y); // as string
+		if (!visited[pos]) score += Score(x,y);
+		if (score + ap*gMaxScorePerField > gMinScore) {
+			var newexp = new Object();
+			newexp.x = x;
+			newexp.y = y;
+			newexp.ap = ap;
+			newexp.score = score;
+			newexp.visited = clonemod1(visited,pos,true);
+			newexp.txt = txt+" "+pos;
+			gExpeditions.push(newexp);
+			gExpeditionC = gExpeditionC + 1;
+		}
+	}
+}
+
+function InExp (e,x,y) {
+	var pos = " "+(x-gDVNavi_CityX)+"/"+(gDVNavi_CityY-y)+" "
+	return e.txt.search(pos) != -1;
+}
+
+
+function MyPrintStatus (txt) { gDVNaviStatus.innerHTML = txt; }
+function MyPrintLine (txt) { gDVNaviConsole.innerHTML += txt+"<br>\n"; }
+
+function DVNavi_Execute () {
+	gDVNaviConsole = document.getElementById("idMapCellInfo");
+	gDVNaviConsole.innerHTML += "<br>\n";
+	gDVNaviStatus = document.getElementById("idDVNaviStatus");
+	AddExpedition(gDVNavi_CityX,gDVNavi_CityY,gExpeditionMaxAP,new Object(),0,"");
+	gDVNavi_Steps = 0;
+	DVNavi_StepBlock();
+}
+	
+function DVNavi_StepBlock () { // delayed execution to avoid browser hang
+	var blocksteps = 100;
+	while (gExpeditions.length > 0 && blocksteps > 0) { DVNavi_Step(); --blocksteps; }
+	if (gExpeditions.length > 0)
+			window.setTimeout("DVNavi_StepBlock()",50); // short pause, then continue
+	else	DVNavi_Finished();
+}
+
+function DVNavi_Step () { // main step, this eats cpu for breakfast
+	var e = gExpeditions.pop();
+	if (!e) return;
+	gExpeditionC -= 1;
+	var bFinished = e.ap <= 2 && ReturnAP(e.x,e.y) == 0;
+	if (bFinished && e.score > gMinScore) {
+		gMinScore = e.score;
+		//~ table.insert(gFinishedExp,e) 
+		//~ MyPrintLine("new highscore",gMinScore,e.txt);
+		gBestExp = e;
+		gBestExpPath = e.txt;
+		DVNavi_ShowBestResult();
+	}
+	AddExpedition(e.x-1,e.y,e.ap-1,e.visited,e.score,e.txt);
+	AddExpedition(e.x+1,e.y,e.ap-1,e.visited,e.score,e.txt);
+	AddExpedition(e.x,e.y-1,e.ap-1,e.visited,e.score,e.txt);
+	AddExpedition(e.x,e.y+1,e.ap-1,e.visited,e.score,e.txt);
+	++gDVNavi_Steps;
+	if ((gDVNavi_Steps % 100) == 0) MyPrintStatus("step "+gDVNavi_Steps+","+gExpeditionC+","+gMinScore+","+gBestExpPath);
+	//~ print("step",gDVNavi_Steps,gExpeditionC,#gFinishedExp,e.ap,e.x..","..e.y,Score(e.x,e.y),bFinished and "HOME" or "",e.score,e.txt)
+}
+
+function DVNavi_Finished () {}
+function img (url) { return "<img src='"+url+"'>"; }
+
+// display a little table showing the route
+function DVNavi_ShowBestGetCode(x,y) {
+	if (IsCity(x,y)) return img("images/map/dvnavi_city.gif");
+	var bBigScore = Score(x,y) > 500;
+	if (InExp(gBestExp,x,y)) return bBigScore ? img("images/map/dvnavi_exp_high.gif") : img("images/map/dvnavi_exp_low.gif");
+	return bBigScore ? img("images/map/dvnavi_unexp.gif") : img("images/map/dvnavi_zone.gif");
+	//      dvnavi_city.gif   dvnavi_unexp.gif  dvnavi_zone.gif  
+}
+
+function DVNavi_ShowBestResult () {
+	var html = "<table border=1 cellspacing=0 cellpadding=0>";
+	for (y=1;y<=gDVNavi_MapH;++y) {
+		html += "<tr>";
+		for (x=1;x<=gDVNavi_MapW;++x) html += "<td>"+DVNavi_ShowBestGetCode(x,y)+"</td>";
+		html += "</tr>\n";
+	}
+	html += "</table>\n";
+	document.getElementById("idDVNaviResult").innerHTML = html;
+}
+
+
+// ***** ***** ***** ***** *****  DVNavi END
+
+
+
+
 </script>
 <noscript>
 (!javascript needed!)
@@ -924,12 +1075,12 @@ function MyLoadGlobals () {
 	$arr = $xml->data[0]->city[0]->building; if ($arr) foreach ($arr as $building) $gBuildingDone[StripUml($building["name"])] = true;
 
 	
-	global $gMap,$w,$h;
+	global $gMap;
 	global $gRuinen;
 	$gRuinen = array();
 	$map = $xml->data[0]->map[0];
-	$w = $map["wid"];
-	$h = $map["hei"];
+	define("kMapW",$map["wid"]);
+	define("kMapH",$map["hei"]);
 	$gMap = array();
 	function MapSet ($x,$y,$data) { 
 		global $gMap;
@@ -1049,10 +1200,10 @@ if ($gGameDay == 1) { echo ("bau dein Feldbett zu einem Zelt aus, aber NICHT zu 
 
 
 $f = GetBuildingLevel("Forschungsturm");
-$leer_regen = array("fast 0",25,37,49,61,73,85,99,"??");
+$leer_regen = array("fast 0",25,37,49,61,73,85,false);
 $p0 = $leer_regen[$f+1];
 $p1 = $leer_regen[$f+2];
-echo LinkBuilding("Forschungsturm")." ".(($f >= 0)?"Stufe $f":"nicht gebaut")." -&gt; Chance das ein leeres Feld sich regeneriert : ".$p0."% (nächste:".$p1."%)<br>\n";
+echo LinkBuilding("Forschungsturm")." ".(($f >= 0)?"Stufe $f":"nicht gebaut")." -&gt; Chance das ein leeres Feld sich regeneriert : ".$p0."% ".($p1?("nächste:".$p1."%)"):"")."<br>\n";
 
 
 // ***** ***** ***** ***** ***** BÜRGER
@@ -1389,11 +1540,10 @@ RenderMapBlock();
 
 function RenderMapBlock ($mode=kMapMode_Marker) {
 	//~ echo "mapmode=$mode<br>\n";
-	global $w,$h;
 	echo "<table class='map' border=0 cellspacing=0 cellpadding=0>\n";
-	for ($y=0;$y<$h;++$y) {
+	for ($y=0;$y<kMapH;++$y) {
 		echo "<tr>";
-		for ($x=0;$x<$w;++$x) {
+		for ($x=0;$x<kMapW;++$x) {
 			$data = Map($x,$y);
 			$bgimg = "zone_bg.gif";
 			if ($data) {
@@ -1435,8 +1585,11 @@ echo "</span><br>\n";
 echo "<a href='javascript:SetMapMode(".kMapMode_Marker.")'>(Marker)</a>\n";
 echo "<a href='javascript:SetMapMode(".kMapMode_InGameTags.")'>(InGame)</a>\n";
 echo "<a href='javascript:SetMapMode(".kMapMode_Buerger.")'>(Bürger)</a>\n";
+echo "<a href='javascript:DVNavi_Execute()'>(DVNavi)</a>\n";
 
 echo "</td><td valign=top align=left>\n";
+echo "<span id='idDVNaviStatus'></span>\n";
+echo "<span id='idDVNaviResult'></span>\n";
 echo "<span id='idMapCellInfo'>auf die Karte clicken...</span>\n";
 echo "</td></tr></table>\n";
 
