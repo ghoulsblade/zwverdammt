@@ -563,6 +563,10 @@ width:450px;
 	// padding:0px;
 	margin:2px 0px 0px 0px; // top,bottom,left,right
 }
+.dvnavimap * {
+	line-height:5px;
+}
+
 a img { border:0px; }
 </style>
 </head>
@@ -629,7 +633,9 @@ function SetMapMode (d) { MyAjaxGet("?ajax=mapmode&mapmode="+escape(d)+"&gameid=
 
 function ShowNaviMenu () { MyAjaxGet("?ajax=shownavimenu&gameid="+escape(<?=$gGameID?>),"idMapCellInfo"); }
 
+
 <?php
+
 function DVNaviGetMapClass($x,$y) {
 	if ($x == kCityX && $y == kCityY) return "city";
 	$data = Map($x,$y);
@@ -637,6 +643,7 @@ function DVNaviGetMapClass($x,$y) {
 	$rx = $x-kCityX;
 	$ry = kCityY-$y;
 	$o = GetMapNote($rx,$ry);
+	if (IsMapCellRuine($x,$y)) return "ruin";
 	global $gGameDay;
 	if ($o && (int)$o->day == (int)$gGameDay) { // von heute
 		if ($o->icon == kIconID_DigVoll) return "voll";
@@ -662,6 +669,7 @@ gDVNavi_ScoreTable_Unexplored.old = 5;
 gDVNavi_ScoreTable_Unexplored.leer = 0;
 gDVNavi_ScoreTable_Unexplored.voll = 10;
 gDVNavi_ScoreTable_Unexplored.unexp = 1000;
+gDVNavi_ScoreTable_Unexplored.ruin = 100;
 
 gMaxScorePerField = 0;
 
@@ -675,6 +683,7 @@ gMap = {}
 for (y=1;y<=gDVNavi_MapH;++y) { var row = new Array(); gMap[y] = row; for (x=1;x<=gDVNavi_MapW;++x) { row[x] = new Object(); } } // every cell is a table
 function Map			(x,y) { return gMap[y][x]; }
 function Score			(x,y) { return gDVNavi_MapScore[y-1][x-1]; } // gMap indices are one-based, gDVNavi_MapScore zero-based
+function DVNavi_Class	(x,y) { return gDVNavi_MapClass[y-1][x-1]; } // gMap indices are one-based, gDVNavi_MapScore zero-based
 function IsCity			(x,y) { return x == gDVNavi_CityX && y == gDVNavi_CityY; }
 function Valid			(x,y) { return x >= 1 && x <= gDVNavi_MapW && y >= 1 && y <= gDVNavi_MapH; }
 function ReturnAP		(x,y) { return Math.abs(x-gDVNavi_CityX) + Math.abs(y-gDVNavi_CityY); }
@@ -772,13 +781,18 @@ function img (url) { return "<img src='"+url+"'>"; }
 function DVNavi_ShowBestGetCode(x,y) {
 	if (IsCity(x,y)) return img("images/map/dvnavi_city.gif");
 	var bBigScore = Score(x,y) > 500;
-	if (InExp(gBestExp,x,y)) return bBigScore ? img("images/map/dvnavi_exp_high.gif") : img("images/map/dvnavi_exp_low.gif");
-	return bBigScore ? img("images/map/dvnavi_unexp.gif") : img("images/map/dvnavi_zone.gif");
-	//      dvnavi_city.gif   dvnavi_unexp.gif  dvnavi_zone.gif  
+	var cellclass = DVNavi_Class(x,y);
+	if (InExp(gBestExp,x,y)) {
+		if (cellclass == "ruin") return img("images/map/dvnavi_exp_ruin.gif");
+		return bBigScore ? img("images/map/dvnavi_exp_high.gif") : img("images/map/dvnavi_exp_low.gif");
+	}
+	if (cellclass == "ruin") return img("images/map/dvnavi_ruin.gif");
+	if (cellclass == "unexp") return img("images/map/dvnavi_unexp.gif");
+	return img("images/map/dvnavi_zone.gif");
 }
 
 function DVNavi_ShowBestResult () {
-	var html = "<table border=1 cellspacing=0 cellpadding=0>";
+	var html = "<table border=1 cellspacing=0 cellpadding=0 class='dvnavimap'>";
 	for (y=1;y<=gDVNavi_MapH;++y) {
 		html += "<tr>";
 		for (x=1;x<=gDVNavi_MapW;++x) html += "<td>"+DVNavi_ShowBestGetCode(x,y)+"</td>";
@@ -1520,6 +1534,8 @@ function GetMapToolTip ($x,$y) {
 	}
 	return $txt;
 }
+
+function IsMapCellRuine ($x,$y) { $data = Map($x,$y); return $data && $data->building[0]; }
 
 function MapGetCellContent ($x,$y,$mode=kMapMode_Marker) { // kMapMode_Marker,kMapMode_Buerger
 	global $gGameID,$gGameDay;
