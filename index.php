@@ -109,6 +109,7 @@ define("kMapMode_Buerger"		,2);
 define("kMapMode_InGameTags"	,3);
 
 $gRegisteredItemTypeIDs = sqlgettable("SELECT id FROM itemtype","id");
+$gRegisteredBuildingTypeIDs = sqlgettable("SELECT id,buildingid FROM buildingtype","buildingid");
 
 $gIconText = array(
 	0=>"Feld leer",
@@ -264,6 +265,17 @@ function RegisterItemType ($item) {
 	$o->cat2 = $o->cat; // later used to mark special types : alcohol,drugs,tools(weapons)#
 	if (!sqlgetone("SELECT 1 FROM itemtype WHERE id = ".intval($o->id)))
 		sql("REPLACE INTO itemtype SET ".obj2sql($o));
+}
+function RegisterBuildingType ($building) {
+	global $gRegisteredBuildingTypeIDs;
+	$o = false;
+	$o->buildingid = (string)$building["id"];
+	if ($gRegisteredBuildingTypeIDs[$o->buildingid]) return;
+	$o->img = (string)$building["img"];
+	$o->name = (string)$building["name"];
+	$o->notfall = (int)$building["temporary"];
+	if (!sqlgetone("SELECT 1 FROM buildingtype WHERE id = ".intval($o->id)))
+		sql("REPLACE INTO buildingtype SET ".obj2sql($o));
 }
 
 
@@ -1344,6 +1356,7 @@ echo "<br>\n";
 // ***** ***** ***** ***** ***** GEBÄUDE
 echo href("http://nobbz.de/wiki/index.php/Geb%C3%A4ude_%C3%9Cbersicht","Gebäude").":<br>\n";
 foreach ($xml->data[0]->city[0]->building as $building) {
+	RegisterBuildingType($building);
 	echo img($icon_url.$building["img"].".gif").LinkBuilding(utf8_decode($building["name"]))."<br>\n";
 }
 

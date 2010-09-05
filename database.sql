@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Erstellungszeit: 04. September 2010 um 10:29
+-- Erstellungszeit: 05. September 2010 um 16:54
 -- Server Version: 5.0.51
 -- PHP-Version: 5.2.6-1+lenny8
 
@@ -25,7 +25,6 @@ SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 -- Tabellenstruktur für Tabelle `accesslog`
 --
 
-DROP TABLE IF EXISTS `accesslog`;
 CREATE TABLE IF NOT EXISTS `accesslog` (
   `id` int(11) NOT NULL auto_increment,
   `seelenid` varchar(255) NOT NULL,
@@ -34,7 +33,7 @@ CREATE TABLE IF NOT EXISTS `accesslog` (
   `browser` text NOT NULL,
   `context` varchar(128) NOT NULL,
   PRIMARY KEY  (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1762 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=2269 ;
 
 -- --------------------------------------------------------
 
@@ -42,11 +41,14 @@ CREATE TABLE IF NOT EXISTS `accesslog` (
 -- Tabellenstruktur für Tabelle `buildingtype`
 --
 
-DROP TABLE IF EXISTS `buildingtype`;
 CREATE TABLE IF NOT EXISTS `buildingtype` (
   `id` int(11) NOT NULL auto_increment,
   `buildingid` int(11) NOT NULL,
   `name` varchar(128) NOT NULL,
+  `img` text NOT NULL,
+  `notfall` int(11) NOT NULL,
+  `wiki_html` text NOT NULL,
+  `wiki_src` text NOT NULL,
   `def` int(11) NOT NULL,
   `plv` float NOT NULL,
   `ap0` int(11) NOT NULL,
@@ -56,8 +58,10 @@ CREATE TABLE IF NOT EXISTS `buildingtype` (
   `ap4` int(11) NOT NULL,
   `ap5` int(11) NOT NULL,
   `mats` text NOT NULL,
-  PRIMARY KEY  (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=67 ;
+  PRIMARY KEY  (`id`),
+  KEY `buildingid` (`buildingid`),
+  KEY `name` (`name`)
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1308 ;
 
 -- --------------------------------------------------------
 
@@ -65,7 +69,6 @@ CREATE TABLE IF NOT EXISTS `buildingtype` (
 -- Tabellenstruktur für Tabelle `itemtype`
 --
 
-DROP TABLE IF EXISTS `itemtype`;
 CREATE TABLE IF NOT EXISTS `itemtype` (
   `id` int(11) NOT NULL,
   `name` text NOT NULL,
@@ -83,7 +86,6 @@ CREATE TABLE IF NOT EXISTS `itemtype` (
 -- Tabellenstruktur für Tabelle `mapnote`
 --
 
-DROP TABLE IF EXISTS `mapnote`;
 CREATE TABLE IF NOT EXISTS `mapnote` (
   `id` int(11) NOT NULL auto_increment,
   `time` int(11) NOT NULL,
@@ -99,7 +101,7 @@ CREATE TABLE IF NOT EXISTS `mapnote` (
   KEY `gameid` (`gameid`,`x`,`y`),
   KEY `gameid_2` (`gameid`),
   KEY `time` (`time`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=544 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=570 ;
 
 -- --------------------------------------------------------
 
@@ -107,14 +109,13 @@ CREATE TABLE IF NOT EXISTS `mapnote` (
 -- Tabellenstruktur für Tabelle `stream_debug`
 --
 
-DROP TABLE IF EXISTS `stream_debug`;
 CREATE TABLE IF NOT EXISTS `stream_debug` (
   `id` int(11) NOT NULL auto_increment,
   `seelenid` varchar(255) NOT NULL,
   `xml` mediumtext NOT NULL,
   `time` int(11) NOT NULL,
   PRIMARY KEY  (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=433 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=587 ;
 
 -- --------------------------------------------------------
 
@@ -122,7 +123,6 @@ CREATE TABLE IF NOT EXISTS `stream_debug` (
 -- Tabellenstruktur für Tabelle `xml`
 --
 
-DROP TABLE IF EXISTS `xml`;
 CREATE TABLE IF NOT EXISTS `xml` (
   `id` int(11) NOT NULL auto_increment,
   `seelenid` varchar(255) NOT NULL,
@@ -135,7 +135,7 @@ CREATE TABLE IF NOT EXISTS `xml` (
   KEY `seelenid` (`seelenid`),
   KEY `time` (`time`),
   KEY `gameid` (`gameid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1120 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1347 ;
 
 -- --------------------------------------------------------
 
@@ -143,7 +143,6 @@ CREATE TABLE IF NOT EXISTS `xml` (
 -- Tabellenstruktur für Tabelle `xmldump`
 --
 
-DROP TABLE IF EXISTS `xmldump`;
 CREATE TABLE IF NOT EXISTS `xmldump` (
   `id` int(11) NOT NULL auto_increment,
   `time` int(11) NOT NULL,
