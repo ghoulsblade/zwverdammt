@@ -6,11 +6,12 @@
 // idee : rein+rausrennen
 // idee : werkstatt herstellung 
 // idee : angriffe/diebstähle
+// brunnen icon : http://data.dieverdammten.de/gfx/icons/small_well.gif
 
 //~ define("kCityLogSampleFile","samplelog_04.09.2010_tag3.txt");
 define("kCityLogSampleFile","samplelog_04.09.2010.txt");
 
-$gImportantItems = array("Ration Wasser","Paracetoid","bandage","Twinoid","Anaboles steroid"); // tasche.gürtel,einkwagen
+$gImportantItems = array("Ration Wasser","Paracetoid","bandage","Twinoid","Anaboles steroid"); // tasche.gürtel,einkwagen,säge
 $gCityLogItemSum = array();
 
 // utf8_decode

@@ -37,6 +37,7 @@ IDEEN :
 * stadtauflistung mit suchfunktion (stadtname,spielername), und verschiedene stats nach denen man sortieren kann (tage,leute am leben, vieleicht paar bewertungen, gesamt def, dev vs zombies, vll sogar abschätzung der lebenserwartung nach statistischem durchschnitt der zombie-angriffe vs baumöglichkeiten mit material+ap der lebenden einwohner inklusive bankvorräten)
 * rückblick über mehrere tage, "wie sah stadt x gestern aus"
 * eingetragene exp und leute hinterlassen "spur" (leer, oder fussstapfen)
+* dvnavi idea asid : sturm richtung = wichtigste info
 
 IDEEN : style : 
 * style : starwars:jawas/schrotthändler http://images3.wikia.nocookie.net/__cb20090730135822/starwars/images/2/27/JawaEngineer-SWGTCGAoD.jpg
@@ -99,6 +100,7 @@ function LinkItem		($name,$html=false) { return LinkWiki($name,$html); }
 define("kNumIcons",7);
 define("kIconID_DigLeer",0);
 define("kIconID_DigVoll",1);
+define("kIconID_Verboten",4);
 define("kIconID_Notiz",6);
 
 define("kSearchGameID",isset($_REQUEST["gameid"])?intval($_REQUEST["gameid"]):false);
@@ -116,7 +118,7 @@ $gIconText = array(
 	1=>"Feld regeneriert : graben!",
 	2=>"Feld temporaer gesichert",
 	3=>"Notruf",
-	4=>"warnung",
+	4=>"!Verboten!(für DVNavi)",
 	5=>"ok",
 	6=>"notiz",
 );
@@ -306,8 +308,10 @@ function Ajax_MapMode() { RenderMapBlock(intval($_REQUEST["mapmode"])); }
 
 
 function Ajax_ShowNaviMenu () {
+	global $gIconText;
 	?>
-	DVNavi : Expeditions-Routen-Vorschlag
+	DVNavi : Expeditions-Routen-Vorschlag<br>
+	Tipp : <?=img("images/map/icon_".kIconID_Verboten.".gif",$gIconText[$i])?> Marker = verbotenes Feld.<br>
 	<form action="?" method="post" class='mapadd' id='form_dvnavi'>
 	<input class='mapaddsmall_input' type="text" size="3" maxlength="5" name="ap" value='18'>AP
 	<input class='mapaddsmall_button' type="button" name="util_scout" value="Route berechnen" onclick="DVNavi_Execute(this.form.ap.value)"></td>
@@ -641,11 +645,12 @@ function ShowNaviMenu () { MyAjaxGet("?ajax=shownavimenu&gameid="+escape(<?=$gGa
 
 function DVNaviGetMapClass($x,$y) {
 	if ($x == kCityX && $y == kCityY) return "city";
-	$data = Map($x,$y);
-	if (!$data) return "unexp"; // unexplored -> sure that it is NONEMPTY, could have ruin
 	$rx = $x-kCityX;
 	$ry = kCityY-$y;
 	$o = GetMapNote($rx,$ry);
+	if ($o->icon == kIconID_Verboten) return "verboten"; // per icon manuell deaktiviert
+	$data = Map($x,$y);
+	if (!$data) return "unexp"; // unexplored -> sure that it is NONEMPTY, could have ruin
 	if (IsMapCellRuine($x,$y)) return "ruin";
 	global $gGameDay;
 	if ($o && (int)$o->day == (int)$gGameDay) { // von heute
@@ -670,6 +675,7 @@ kDVNaviMaxScore				= 1000;
 kDVNavi2ndMaxScore			= 100; // zweithoechste moegliche punktzahl
 
 gDVNavi_ScoreTable_Unexplored = new Object();
+gDVNavi_ScoreTable_Unexplored.verboten = -10*kDVNaviMaxScore;
 gDVNavi_ScoreTable_Unexplored.city = 0;
 gDVNavi_ScoreTable_Unexplored.old = 5;
 gDVNavi_ScoreTable_Unexplored.leer = 0;
@@ -695,14 +701,6 @@ function ReturnAP		(x,y) { return Math.abs(x-gDVNavi_CityX) + Math.abs(y-gDVNavi
 
 // expeditions
 
-gExpeditions = new Array();
-gExpeditionC = 0;
-gFinishedExp = new Array();
-gMinScore = 0;
-gBestExpPath = "";
-gDVNaviConsole = false;
-gDVNaviStatus = false;
-gExpeditionMaxAP = 18;
 
 function clonemod1 (t,k1,v1) { // copy assoc-array t, and modify one value by key k1 -> v1
 	var res = new Object(); 
@@ -730,8 +728,8 @@ function AddExpedition (x,y,ap,visited,score,txt) {
 	var pos = (x-gDVNavi_CityX) + "/" + (gDVNavi_CityY-y); // as string
 	if (!visited[pos]) score += Score(x,y);
 	if (score + ap*kDVNaviMaxScore <= gMinScore) return;
-	var heur = DVNavi_Heuristic(x,y,ap);
-	if (score + heur <= gMinScore) return;
+	var heur = score + DVNavi_Heuristic(x,y,ap);
+	if (heur <= gMinScore) return;
 	
 	var newexp = new Object();
 	newexp.x = x;
@@ -755,7 +753,19 @@ function MyPrintStatus (txt) { gDVNaviStatus.innerHTML = txt; }
 function MyPrintLine (txt) { gDVNaviConsole.innerHTML += txt+"<br>\n"; }
 
 function DVNavi_Execute (ap) {
+
+	gExpeditions = new Array();
+	gExpeditionC = 0;
+	gFinishedExp = new Array();
+	gMinScore = 0;
+	gBestExpPath = "";
+	gDVNaviConsole = false;
+	gDVNaviStatus = false;
+	gExpeditionMaxAP = 18;
+	gDVNavi_BlockSteps = 200;
+
 	gExpeditionMaxAP = ap;
+	gDVNavi_BlockSteps = <?=isset($_REQUEST["dvnavi_cpu"])?$_REQUEST["dvnavi_cpu"]:200?>;
 	InitScoreMap(gDVNavi_ScoreTable_Unexplored);
 	gDVNaviConsole = document.getElementById("idMapCellInfo");
 	//~ gDVNaviConsole.innerHTML += "<br>\n";
@@ -765,17 +775,35 @@ function DVNavi_Execute (ap) {
 	DVNavi_StepBlock();
 	return false;
 }
-	
+
 function DVNavi_StepBlock () { // delayed execution to avoid browser hang
-	var blocksteps = 100;
+	var blocksteps = gDVNavi_BlockSteps;
 	while (gExpeditions.length > 0 && blocksteps > 0) { DVNavi_Step(); --blocksteps; }
 	if (gExpeditions.length > 0)
-			window.setTimeout("DVNavi_StepBlock()",50); // short pause, then continue
+			window.setTimeout("DVNavi_StepBlock()",10); // short pause, then continue
 	else	DVNavi_Finished();
 }
 
 function DVNavi_Step () { // main step, this eats cpu for breakfast
-	var e = gExpeditions.pop();
+	<?php $bHeuristicsActive = isset($_REQUEST["heuristic"]);?>
+	<?php $bHeuristicsActive = true;?>
+	<?php if ($bHeuristicsActive) {?>
+	// try to pick the "best" element. but didn't work, neither with current score, nor with heuristic
+	var len = Math.min(2000,gExpeditions.length);
+	var e = false;
+	var e_i = 0;
+	var next_heur = -1;
+	var next_score = -1;
+	for (var i=0;i<len;++i) {
+		var cur = gExpeditions[i];
+		if (cur.heur > next_heur) { e_i = i; next_heur = cur.heur; e = cur; }
+		//~ if (cur.score > next_score || (cur.score == next_score && cur.heur > next_heur)) { e_i = i; next_heur = cur.heur; next_score = cur.score; e = cur; }
+	}
+	if (e) { gExpeditions[e_i] = gExpeditions[gExpeditions.length-1]; gExpeditions.pop(); }
+	<?php } else {?>
+	var e = gExpeditions.pop(); // just take the last element
+	<?php }?>
+	
 	if (!e) return;
 	gExpeditionC -= 1;
 	var bFinished = e.ap <= 2 && ReturnAP(e.x,e.y) == 0;
@@ -792,35 +820,45 @@ function DVNavi_Step () { // main step, this eats cpu for breakfast
 	AddExpedition(e.x,e.y-1,e.ap-1,e.visited,e.score,e.txt);
 	AddExpedition(e.x,e.y+1,e.ap-1,e.visited,e.score,e.txt);
 	++gDVNavi_Steps;
-	if ((gDVNavi_Steps % 100) == 0) MyPrintStatus("step "+gDVNavi_Steps+","+gExpeditionC+","+gMinScore+","+gBestExpPath);
+	if ((gDVNavi_Steps % 500) == 0) MyPrintStatus("step "+gDVNavi_Steps+","+gExpeditionC+","+gMinScore+","+gBestExpPath);
 	//~ print("step",gDVNavi_Steps,gExpeditionC,#gFinishedExp,e.ap,e.x..","..e.y,Score(e.x,e.y),bFinished and "HOME" or "",e.score,e.txt)
 }
 
-function DVNavi_Finished () {}
+function DVNavi_Finished () { MyPrintStatus("Fertig. Beste Route:"+gBestExpPath); }
 function img (url) { return "<img src='"+url+"'>"; }
 
 // display a little table showing the route
-function DVNavi_ShowBestGetCode(x,y) {
-	if (IsCity(x,y)) return img("images/map/dvnavi_city.gif");
-	var bBigScore = Score(x,y) > 500;
-	var cellclass = DVNavi_Class(x,y);
-	if (InExp(gBestExp,x,y)) {
-		if (cellclass == "ruin") return img("images/map/dvnavi_exp_ruin.gif");
-		return bBigScore ? img("images/map/dvnavi_exp_high.gif") : img("images/map/dvnavi_exp_low.gif");
-	}
-	if (cellclass == "ruin") return img("images/map/dvnavi_ruin.gif");
-	if (cellclass == "unexp") return img("images/map/dvnavi_unexp.gif");
-	return img("images/map/dvnavi_zone.gif");
-}
-
 function DVNavi_ShowBestResult () {
 	var html = "<table border=1 cellspacing=0 cellpadding=0 class='dvnavimap'>";
+	var c_unexp = 0;
+	var c_ruin  = 0;
 	for (y=1;y<=gDVNavi_MapH;++y) {
 		html += "<tr>";
-		for (x=1;x<=gDVNavi_MapW;++x) html += "<td>"+DVNavi_ShowBestGetCode(x,y)+"</td>";
+		for (x=1;x<=gDVNavi_MapW;++x) {
+			var cell;
+			if (IsCity(x,y)) {
+				cell = img("images/map/dvnavi_city.gif");
+			} else {
+				var bBigScore = Score(x,y) > 500;
+				var cellclass = DVNavi_Class(x,y);
+				if (InExp(gBestExp,x,y)) {
+						 if (cellclass == "ruin") { cell = img("images/map/dvnavi_exp_ruin.gif"); ++c_ruin; }
+					else if (cellclass == "unexp") { cell = img("images/map/dvnavi_exp_unexp.gif"); ++c_unexp; }
+					else cell = bBigScore ? img("images/map/dvnavi_exp_high.gif") : img("images/map/dvnavi_exp_low.gif");
+				} else {
+						 if (cellclass == "ruin") cell = img("images/map/dvnavi_ruin.gif");
+					else if (cellclass == "unexp") cell = img("images/map/dvnavi_unexp.gif");
+					else cell = img("images/map/dvnavi_zone.gif");
+				}
+			}
+			html += "<td>"+cell+"</td>";
+		}
 		html += "</tr>\n";
 	}
 	html += "</table>\n";
+	html += gExpeditionMaxAP+" AP<br>\n";
+	html += c_unexp+" Unerforschte Felder<br>\n";
+	html += c_ruin+" Ruinen<br>\n";
 	document.getElementById("idDVNaviResult").innerHTML = html;
 }
 
