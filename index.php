@@ -644,15 +644,15 @@ function ShowNaviMenu () { MyAjaxGet("?ajax=shownavimenu&gameid="+escape(<?=$gGa
 <?php
 
 function DVNaviGetMapClass($x,$y) {
+	global $gGameDay;
 	if ($x == kCityX && $y == kCityY) return "city";
 	$rx = $x-kCityX;
 	$ry = kCityY-$y;
 	$o = GetMapNote($rx,$ry);
-	if ($o->icon == kIconID_Verboten) return "verboten"; // per icon manuell deaktiviert
+	if ($o->day == $gGameDay && $o->icon == kIconID_Verboten) return "verboten"; // per icon manuell deaktiviert
 	$data = Map($x,$y);
 	if (!$data) return "unexp"; // unexplored -> sure that it is NONEMPTY, could have ruin
 	if (IsMapCellRuine($x,$y)) return "ruin";
-	global $gGameDay;
 	if ($o && (int)$o->day == (int)$gGameDay) { // von heute
 		if ($o->icon == kIconID_DigVoll) return "voll";
 		if ($o->icon == kIconID_DigLeer) return "leer";

@@ -22,12 +22,23 @@ Copyright (c) 2010 <copyright holders>
  THE SOFTWARE.
 */
 
+header("Content-Type: text/xml");
+
 require_once("defines.php");
 require_once("roblib.php");
 require_once("lib.verdammt.php");
 
+// text/xml
 
-$xml = new SimpleXMLElement('<api/>');
+
+$xml = new SimpleXMLElement('<api xmlns:dc="http://purl.org/dc/elements/1.1" xmlns:content="http://purl.org/rss/1.0/modules/content/"/>',LIBXML_NOXMLDECL);
+//~ $xml->addAttribute("xmlns:dc","http://purl.org/dc/elements/1.1");
+//~ $xml->addAttribute("xmlns:content","http://purl.org/rss/1.0/modules/content/");
+$xmldecl		= '<?xml version="1.0" encoding="UTF-8"?>';
+$xmldecl_bad	= '<?xml version="1.0"?>';
+//~ xmlns:dc="http://purl.org/dc/elements/1.1" xmlns:content="http://purl.org/rss/1.0/modules/content/"
+
+
 
 function ExportMapNotes ($xml,$gameid) {
 	$gameid = intval($gameid);
@@ -55,22 +66,42 @@ function ExportMapNotes ($xml,$gameid) {
 }
 
 
-if (isset($_REQUEST["gameid"])) {
+if (isset($_REQUEST["mode"])) {
+	switch ($_REQUEST["mode"]) {
+		case "cityxml":
+			if (!isset($_REQUEST["gameid"])) exit("missing gameid=x in url");
+			if (!isset($_REQUEST["day"])) exit("missing day=x in url");
+			$o = sqlgetobject("SELECT * FROM xml WHERE ".arr2sql(array("gameid"=>$_REQUEST["gameid"],"day"=>$_REQUEST["day"])," AND ")." ORDER BY id DESC LIMIT 1");
+			if (!$o) exit("error, not found");
+			exit($o->xml);
+		break;
+		case "citylist":
+			$o_cities = sqlgettable("SELECT gameid,cityname,MAX(day) as maxday,MAX(time) maxt FROM xml GROUP BY gameid");
+			$x_cities = $xml->addChild('cities');
+			foreach ($o_cities as $o_city) if ($o_city->gameid != 0) {
+				$x_city = $x_cities->addChild('city');
+				$x_city->addAttribute("gameid",$o_city->gameid);
+				$x_city->addAttribute("cityname",utf8_encode($o_city->cityname));
+				$x_city->addAttribute("day",$o_city->maxday);
+				$x_city->addAttribute("time",$o_city->maxt);
+				$saves = sqlgettable("SELECT id,day,MAX(time) maxt FROM xml WHERE gameid = ".intval($o_city->gameid)." GROUP BY day");
+				foreach ($saves as $o_save) {
+					$x_save = $x_city->addChild('save');
+					$x_save->addAttribute("day",$o_save->day);
+					$x_save->addAttribute("time",$o_save->maxt);
+					$x_save->addAttribute("id",$o_save->id);
+				}
+			}
+		break;
+	}
+} else if (isset($_REQUEST["gameid"])) {
 	ExportMapNotes($xml,$_REQUEST["gameid"]);
 } else if (isset($_REQUEST["seelenid"])) {
 	LogAccess($_REQUEST["seelenid"],"api");
 	ExportMapNotes($xml,GetGameIDForSeelenID($_REQUEST["seelenid"]));
 } else {
-	$o_cities = sqlgettable("SELECT *,MAX(day) as maxday,MAX(time) maxt FROM xml GROUP BY gameid");
-	$x_cities = $xml->addChild('cities');
-	foreach ($o_cities as $o) if ($o->gameid != 0) {
-		$node = $x_cities->addChild('city');
-		$node->addAttribute("gameid",$o->gameid);
-		$node->addAttribute("cityname",utf8_encode($o->cityname));
-		$node->addAttribute("day",$o->maxday);
-		$node->addAttribute("time",$o->maxt);
-	}
-	
+	exit("use mode=citylist in url");
+	// see case 
 	//~ exit("missing param, try gameid=123");
 }
 
