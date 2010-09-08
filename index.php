@@ -959,7 +959,7 @@ function PrintHeaderSection () { // login,links,disclaimer
 		echo "</td><td>";
 			if (kSeelenID) { ?><form action="" method="POST"><input type="submit" name="LogOut" value="LogOut"></form><?php }
 		echo "</td><td>";
-			$otherCities = sqlgettable("SELECT *,MAX(`day`) as maxday,MAX(`time`) as maxtime FROM xml GROUP BY gameid ORDER BY id DESC");
+			$otherCities = sqlgettable("SELECT *,MAX(`day`) as maxday,MAX(`time`) as maxtime,MIN(IF(UNIX_TIMESTAMP() - `time` > 1.5*24*3600,1,0)) as bDead FROM xml GROUP BY gameid ORDER BY bDead ASC,maxday DESC");
 			// date("H:i d-m-Y",$city->maxtime)
 			if (kSeelenID && count($otherCities) > 1) {
 			$mygameid = kSearchGameID ? kSearchGameID : $gGameID;
@@ -967,7 +967,7 @@ function PrintHeaderSection () { // login,links,disclaimer
 			<form action='?' method="GET">
 			<select name="gameid">
 			<?php foreach ($otherCities as $city) if ($city->cityname != "") {?>
-			<option value="<?=$city->gameid?>" <?=($mygameid == $city->gameid)?"selected":""?>><?=htmlspecialchars(utf8_decode($city->cityname))?>(Tag<?=$city->maxday?>)</option>
+			<option value="<?=$city->gameid?>" <?=($mygameid == $city->gameid)?"selected":""?>><?=($city->bDead==1)?"(TOT)":""?> <?=htmlspecialchars(utf8_decode($city->cityname))?>(Tag<?=$city->maxday?>)</option>
 			<?php }?>
 			</select>
 			<input type="submit" name="Go" value="Go"></form>
