@@ -71,7 +71,6 @@ if (!file_exists("defines.php")) exit('error: please rename "defines.dist.php" t
 require_once("defines.php");
 require_once("roblib.php");
 require_once("lib.verdammt.php");
-function href ($url,$title=false) { return "<a href='$url'>".($title?$title:$url)."</a>"; }
 
 //~ function MyEscXML ($txt) { return htmlspecialchars($txt); } // ö->uuml;
 function MyEscXML ($txt) { 
@@ -83,7 +82,6 @@ function MyEsc ($txt) { return utf8_decode($txt); } // htmlspecialchars
 function MyEscHTML ($txt) { return utf8_decode($txt); } // htmlspecialchars
 function MyEscHTML2 ($txt) { return htmlspecialchars(($txt)); } // htmlspecialchars
 //~ function MyEsc ($txt) { return strtr($txt,array("Ã?"=>"ß","Ã¼"=>"ü","Ã¶"=>"ö")); } // htmlspecialchars
-function img ($url,$title=false,$special="") { $title = $title?strtr((htmlentities(utf8_decode($title))),array("'"=>'"')):false; return "<img $special src='$url' ".($title?("alt='$title' title='$title'"):"")."/>"; }
 function StripUml($txt) { return preg_replace('/[^a-zA-Z0-9]/','',$txt); }
 
 
