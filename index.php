@@ -121,6 +121,18 @@ $gIconText = array(
 	6=>"notiz",
 );
 
+function RegisterRuin ($gameid,$rx,$ry,$name,$type) { // <building name="Autowracks" type="7" dig="0">
+	if (intval($type) == -1) return;
+	$o = false;
+	$o->gameid = $gameid;
+	$o->x = $rx;
+	$o->y = $ry;
+	if (sqlgetone("SELECT 1 FROM ruin WHERE ".obj2sql($o," AND "))) return;
+	$o->ap = abs($rx)+abs($ry);
+	$o->name = utf8_decode($name);
+	$o->type = intval($type);
+	sql("REPLACE INTO ruin SET ".obj2sql($o));
+}
 
 function GetTextBetween ($text,$start,$end,$startskipto=false,$bReturnFullOnFail=false) {
 	if ($text === false) return $bReturnFullOnFail?$text:false;
@@ -1209,7 +1221,7 @@ function MyLoadGlobals () {
 		$y = intval($zone["y"]);
 		MapSet($x,$y,$zone);
 		$r = $zone->building[0];
-		if ($r) $gRuinen[] = array("x"=>$x,"y"=>$y,"node"=>$r);
+		if ($r) { RegisterRuin($gGameID,$x-kCityX,kCityY-$y,$r["name"],$r["type"]); $gRuinen[] = array("x"=>$x,"y"=>$y,"node"=>$r); }
 	}
 }
 
@@ -1401,9 +1413,22 @@ if ($c < 3) {
 
 // ***** ***** ***** ***** ***** Ruinen
 
+function GetRuinPossibleTipp ($ap) {
+	$sum = sqlgetone("SELECT COUNT(*) FROM ruin WHERE ap = ".intval($ap));
+	$types = sqlgettable("SELECT *,COUNT(*) as c FROM ruin WHERE ap = ".intval($ap)." GROUP BY type ORDER BY c DESC");
+	$txt = "";
+	foreach ($types as $o) $txt .= sprintf("%2.0f%%",$o->c*100/$sum)." ".$o->name."<br>\n";
+	return $txt;
+}
+
 echo "<br>\n";
 echo href("http://nobbz.de/wiki/index.php/Ruinen","Ruinen (".count($gRuinen)."/10)")."<br>\n";
 $i = 0;
+function absap	  ($x,$y) { return abs($x-kCityX)+abs(kCityY-$y); } // in: absolute position
+function ruin_cmp ($a,$b) { return absap($a["x"],$a["y"]) - absap($b["x"],$b["y"]); }
+usort($gRuinen,"ruin_cmp");
+// $gRuinen
+echo "<table border=1 cellspacing=0 cellpadding=1>\n";
 foreach ($gRuinen as $r) {
 	++$i;
 	$x = $r["x"] - kCityX;
@@ -1411,9 +1436,22 @@ foreach ($gRuinen as $r) {
 	$textid = "idRuinText".$i;
 	$dig = $r["node"]["dig"];
 	$dithtml = ($dig && $dig>0)?(" ($dig ".img(kIconURL_ruindig).")"):"";
-	echo "($x/$y)[".(abs($x)+abs($y))."AP]".LinkRuin(utf8_decode($r["node"]["name"])).$dithtml." ".href("javascript:ShowHide(\"".$textid."\")","(text)")."<br>\n";
-	echo "<span style='display:none;' id='".$textid."'>".htmlspecialchars(utf8_decode($r["node"]))."<br></span>\n";
+	$bUnknown = $r["node"]["type"] == -1;
+	$ap = abs($x)+abs($y);
+	
+	echo "<tr>\n";
+	echo "<td align=center>$x/$y</td>\n";
+	echo "<td>".$ap."AP</td>\n";
+	echo "<td>";
+	echo "".($bUnknown?"???":LinkRuin(utf8_decode($r["node"]["name"]))).$dithtml." ".href("javascript:ShowHide(\"".$textid."\")",$bUnknown?"(möglich)":"(text)")."<br>\n";
+	
+	$tipp = ($bUnknown)?GetRuinPossibleTipp($ap):"";
+	
+	echo "<span style='display:none;' id='".$textid."'>".htmlspecialchars(utf8_decode($r["node"])).$tipp."</span>\n";
+	echo "</td>\n";
+	echo "</tr>\n";
 }
+echo "</table>\n";
 
 // ***** ***** ***** ***** ***** TOTE
 echo "<br>\n";
