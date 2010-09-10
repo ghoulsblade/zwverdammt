@@ -422,19 +422,20 @@ function Ajax_MapCellInfo ($rx,$ry) { // idMapCellInfo
 			</td><td valign='top'>
 				<?php /* ***** *****  UTIL : BUDDLER ***** ***** */ ?>
 				<?php $attr = " title='ankreuzen = REGENERIERTES feld = gruen'"; ?>
-				<?php $attr .= " onchange=\"ColorCheckBox(this,'green','red')\""; ?>
+				<?php $attr .= " onchange=\"this.parentNode.style.backgroundColor = this.checked?'green':'red';\""; ?>
+				<?php $cellattr = " style='background-color:red;'"; ?>
 				<table border=1 cellspacing=0>
 				<tr>
 					<td><?=img(kIconURL_hero_dig,MyImgTitleConst("Helden die den Beruf Buddler wählen können sehen ob umgebende Felder leer sind"))?></td>
-					<td><input type="checkbox" name="dig_north" value="1" <?=$attr?>></td>
+					<td <?=$cellattr?>><input type="checkbox" name="dig_north" value="1" <?=$attr?>></td>
 					<td></td>
 				</tr><tr>
-					<td><input type="checkbox" name="dig_west" value="1" <?=$attr?>></td>
-					<td><input type="checkbox" name="dig_mid" value="1" <?=$attr?>></td>
-					<td><input type="checkbox" name="dig_east" value="1" <?=$attr?>></td>
+					<td <?=$cellattr?>><input type="checkbox" name="dig_west" value="1" <?=$attr?>></td>
+					<td <?=$cellattr?>><input type="checkbox" name="dig_mid" value="1" <?=$attr?>></td>
+					<td <?=$cellattr?>><input type="checkbox" name="dig_east" value="1" <?=$attr?>></td>
 				</tr><tr>
 					<td></td>
-					<td><input type="checkbox" name="dig_south" value="1" <?=$attr?>></td>
+					<td <?=$cellattr?>><input type="checkbox" name="dig_south" value="1" <?=$attr?>></td>
 					<td><input class='mapaddsmall_button2' type="button" name="util_digg" value="ok" onclick="Form_Map_Digg(this.form)"></td>
 				</tr></table>
 			</td><td valign='top'>
@@ -628,9 +629,9 @@ function AddMapNote_Form (form) {
 function Form_Map_Digg (form) { MyAjaxGet(<?=BuildJSUrl("?ajax=maputil_digg",array("x","y"),array("dig_north","dig_west","dig_mid","dig_east","dig_south"))?>,"idMapContainer"); }
 function Form_Map_Scout (form) { MyAjaxGet(<?=BuildJSUrl("?ajax=maputil_scout",array("x","y","zombie_north","zombie_west","zombie_mid","zombie_east","zombie_south"))?>,"idMapContainer"); }
 
-function ColorCheckBox (el,col_on,col_off) {
-	el.style.backgroundColor = el.checked?col_on:col_off;
-	el.style.color = el.checked?col_on:col_off;
+function ColorCheckBox (el,col) {
+	el.style.backgroundColor = col;
+	el.style.color = col;
 }
 
 function MapClickCell (x,y) {

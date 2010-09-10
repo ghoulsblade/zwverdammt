@@ -75,7 +75,7 @@ if (isset($_REQUEST["mode"])) {
 				$x->addAttribute("type",$o->type);
 				$x->addAttribute("name",utf8_encode($o->name));
 				$x->addAttribute("ap",$o->ap);
-				$x->addAttribute("c",$o->c);
+				$x->addAttribute("count",$o->c);
 			}
 		break;
 		case "cityxml":
