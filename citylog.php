@@ -184,16 +184,25 @@ $arr_drogen = array(
 	"Etikettenloses Medikament",
 	"Abgelaufene Betapropin-Tablette 5mg",
 	);
+$arr_def = array(
+	"Alte Tür",
+	"Unförmige Zementblöcke",
+	"Solide Holzplatte",
+	"Blechplatte",
+	"Matratze",
+	"Järpen-Tisch",
+	"Holzbock",
+	"Autotür",
+	"Fackel",
+	"Bissiger Hund",
+	);
 
 //~ Starke GewÃ¼rze
 //~ GewÃ¼rzte chinesische Nudeln
 // Getrocknete Marshmallows
 // Fackel
 
-//~ Wasserspender (leer)
-//~ Wasserspender (1 Ration)
-//~ Wasserspender (2 Rationen)
-//~ Wasserspender (3 Rationen)
+//~ Wasserspender (leer) (1 Ration) (2 Rationen) (3 Rationen)
 
 function MyLinkPlayer ($name) { return href("?player=".urlencode($name),$name); }
 function CityLog_HighScore ($itemlist,$title=false) {
@@ -213,17 +222,19 @@ echo "(nicht berücksichtigt werden :  privat-nachricht verschickte items, auf de
 echo "<table><tr>";
 echo "<td valign='top'>".CityLog_HighScore("Ration Wasser")."</td>";
 echo "<td valign='top'>".CityLog_HighScore($arr_essen,"Essen")."</td>";
-echo "<td valign='top'>".CityLog_HighScore($arr_drogen,"Drogen")."</td>";
-echo "<td valign='top'>".CityLog_HighScore($arr_alk,"Alkohol")."</td>";
-echo "<td valign='top'>".CityLog_HighScore($arr_tiere,"Tiere")."</td>";
+echo "<td valign='top'>".CityLog_HighScore($arr_drogen,"Drogen").CityLog_HighScore($arr_alk,"Alkohol")."</td>";
 echo "<td valign='top'>";
 echo CityLog_HighScore("Pharmazeutische Substanz");
+echo CityLog_HighScore("Bandage");
+echo CityLog_HighScore("Paracetoid 7g");
+echo CityLog_HighScore($arr_def,"Verteidigung");
+echo CityLog_HighScore($arr_tiere,"Tiere");
+echo "</td>";
+echo "<td valign='top'>";
 echo CityLog_HighScore("Extra Tasche");
 echo CityLog_HighScore("Gürtel mit Tasche");
 echo CityLog_HighScore("Schraubenzieher");
 echo CityLog_HighScore("Knochen mit Fleisch");
-echo CityLog_HighScore("Bandage");
-echo CityLog_HighScore("Paracetoid 7g");
 echo CityLog_HighScore("Kanister");
 echo CityLog_HighScore("Menschenfleisch");
 echo CityLog_HighScore("Nahrungsmittelkiste");

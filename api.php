@@ -68,6 +68,16 @@ function ExportMapNotes ($xml,$gameid) {
 
 if (isset($_REQUEST["mode"])) {
 	switch ($_REQUEST["mode"]) {
+		case "ruinprop":
+			$arr = sqlgettable("SELECT *,COUNT(*) as c FROM ruin GROUP BY type,ap ORDER BY type,ap");
+			foreach ($arr as $o) {
+				$x = $xml->addChild('ruintype');
+				$x->addAttribute("type",$o->type);
+				$x->addAttribute("name",utf8_encode($o->name));
+				$x->addAttribute("ap",$o->ap);
+				$x->addAttribute("c",$o->c);
+			}
+		break;
 		case "cityxml":
 			if (!isset($_REQUEST["gameid"])) exit("missing gameid=x in url");
 			if (!isset($_REQUEST["day"])) exit("missing day=x in url");

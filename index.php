@@ -356,11 +356,11 @@ function Ajax_MapUtil_Digg ($rx,$ry) {
 	$e = intval($_REQUEST["dig_east"]);
 	$s = intval($_REQUEST["dig_south"]);
 	//~ echo "$n,$w,$m,$e,$s<br>\n";
-	MapSetIconRelPos($rx  ,$ry+1,$n?kIconID_DigLeer:kIconID_DigVoll);
-	MapSetIconRelPos($rx-1,$ry  ,$w?kIconID_DigLeer:kIconID_DigVoll);
-	MapSetIconRelPos($rx  ,$ry  ,$m?kIconID_DigLeer:kIconID_DigVoll);
-	MapSetIconRelPos($rx+1,$ry  ,$e?kIconID_DigLeer:kIconID_DigVoll);
-	MapSetIconRelPos($rx  ,$ry-1,$s?kIconID_DigLeer:kIconID_DigVoll);
+	MapSetIconRelPos($rx  ,$ry+1,$n?kIconID_DigVoll:kIconID_DigLeer);
+	MapSetIconRelPos($rx-1,$ry  ,$w?kIconID_DigVoll:kIconID_DigLeer);
+	MapSetIconRelPos($rx  ,$ry  ,$m?kIconID_DigVoll:kIconID_DigLeer);
+	MapSetIconRelPos($rx+1,$ry  ,$e?kIconID_DigVoll:kIconID_DigLeer);
+	MapSetIconRelPos($rx  ,$ry-1,$s?kIconID_DigVoll:kIconID_DigLeer);
 	RenderMapBlock();
 }
 function Ajax_MapUtil_Scout ($rx,$ry) {
@@ -421,19 +421,20 @@ function Ajax_MapCellInfo ($rx,$ry) { // idMapCellInfo
 				&nbsp;
 			</td><td valign='top'>
 				<?php /* ***** *****  UTIL : BUDDLER ***** ***** */ ?>
-				<?php $tipp = "title='ankreuzen = LEERES feld = rot'"; ?>
+				<?php $attr = " title='ankreuzen = REGENERIERTES feld = gruen'"; ?>
+				<?php $attr .= " onchange=\"ColorCheckBox(this,'green','red')\""; ?>
 				<table border=1 cellspacing=0>
 				<tr>
 					<td><?=img(kIconURL_hero_dig,MyImgTitleConst("Helden die den Beruf Buddler wählen können sehen ob umgebende Felder leer sind"))?></td>
-					<td><input type="checkbox" name="dig_north" value="1" <?=$tipp?>></td>
+					<td><input type="checkbox" name="dig_north" value="1" <?=$attr?>></td>
 					<td></td>
 				</tr><tr>
-					<td><input type="checkbox" name="dig_west" value="1" <?=$tipp?>></td>
-					<td><input type="checkbox" name="dig_mid" value="1" <?=$tipp?>></td>
-					<td><input type="checkbox" name="dig_east" value="1" <?=$tipp?>></td>
+					<td><input type="checkbox" name="dig_west" value="1" <?=$attr?>></td>
+					<td><input type="checkbox" name="dig_mid" value="1" <?=$attr?>></td>
+					<td><input type="checkbox" name="dig_east" value="1" <?=$attr?>></td>
 				</tr><tr>
 					<td></td>
-					<td><input type="checkbox" name="dig_south" value="1" <?=$tipp?>></td>
+					<td><input type="checkbox" name="dig_south" value="1" <?=$attr?>></td>
 					<td><input class='mapaddsmall_button2' type="button" name="util_digg" value="ok" onclick="Form_Map_Digg(this.form)"></td>
 				</tr></table>
 			</td><td valign='top'>
@@ -626,6 +627,11 @@ function AddMapNote_Form (form) {
 } ?>
 function Form_Map_Digg (form) { MyAjaxGet(<?=BuildJSUrl("?ajax=maputil_digg",array("x","y"),array("dig_north","dig_west","dig_mid","dig_east","dig_south"))?>,"idMapContainer"); }
 function Form_Map_Scout (form) { MyAjaxGet(<?=BuildJSUrl("?ajax=maputil_scout",array("x","y","zombie_north","zombie_west","zombie_mid","zombie_east","zombie_south"))?>,"idMapContainer"); }
+
+function ColorCheckBox (el,col_on,col_off) {
+	el.style.backgroundColor = el.checked?col_on:col_off;
+	el.style.color = el.checked?col_on:col_off;
+}
 
 function MapClickCell (x,y) {
 	//~ alert("ClickCell"+x+","+y);
