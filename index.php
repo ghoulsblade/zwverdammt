@@ -101,6 +101,8 @@ define("kIconID_DigVoll",1);
 define("kIconID_Verboten",4);
 define("kIconID_Notiz",6);
 
+define("kBuildingLevelMax",5);
+
 define("kSearchGameID",isset($_REQUEST["gameid"])?intval($_REQUEST["gameid"]):false);
 define("kSearchXMLID",isset($_REQUEST["xmlid"])?intval($_REQUEST["xmlid"]):false);
 
@@ -1005,6 +1007,9 @@ function PrintHeaderSection () { // login,links,disclaimer
 			href("http://chat.mibbit.com/?channel=%23dieverdammten&server=irc.mibbit.net","Chat")." ".
 			href("http://www.patamap.com/index.php?page=patastats","PataMap")." ".
 			href("http://github.com/ghoulsblade/zwverdammt","github(sourcecode)")." ". 
+			href("http://poll.nobbz.de/attack","AngriffsStatistik")." ".   
+			href("http://www.twinpedia.com/","twinpedia(fr)").
+			href("http://translate.google.com/translate?hl=de&sl=fr&tl=de&u=http%3A%2F%2Fwww.twinpedia.com%2F","(t)")." ".   
 			href(kXMLUrl_Basic,"XmlStream")." ". 
 			"<br>\n";
 			// http://verdammt.mnutz.de/  (baldwin,stadt)
@@ -1163,6 +1168,10 @@ function MyLoadGlobals () {
 	define("kIconURL_dehydration"	, $icon_url."r_dwater.gif");
 	define("kIconURL_ZombieAngriff"	, "http://data.dieverdammten.de/gfx/forum/smiley/h_zhead.gif");
 	
+	
+	define("kZombieIconHTML",LinkWiki("Zombie",img(kIconURL_zombie,"Zombies")));
+	define("kDefIconHTML",img(kIconURL_def,"def"));
+
 	define("kDeathType_Dehydriert",1);
 	define("kDeathType_Zyanid",3);
 	define("kDeathType_Erhaengt",4);
@@ -1311,20 +1320,28 @@ echo "<table border=1 cellspacing=0><tr><td valign=top>\n";
 
 echo "Stadt=<b>".utf8_decode($city["city"])."</b>";
 echo " Tag=".$gGameDay." (".date("Y-m-d H:i",kRecordTime).")";
-echo " ".img($icon_url."small_water.gif","Wasser").":".$city["water"];
+echo " ".LinkWiki("Wasser",img($icon_url."small_water.gif","Wasser")).":".$city["water"];
 echo " &Uuml;berlebende=".$buerger_alive;
 echo " Helden=".$buerger_hero;
 echo " draussen=".$buerger_draussen;
 if ($gDemo) echo " <b>(demo/offline daten)</b>";
 echo "<br>\n";
 
+$definfo = $xml->data[0]->city[0]->defense[0];
 
+echo LinkWiki("Verteidigungsgegenstände")." : ".$definfo["items"]." * ".LinkWiki("Verteidigungsanlage",$definfo["itemsMul"])." = ".($definfo["items"]*$definfo["itemsMul"]).kDefIconHTML."<br>\n";
 
+$vlevel = GetBuildingLevel("Verteidigungsanlage");
+if ($vlevel < kBuildingLevelMax) {
+	$deffactors = array(2,2.5,3.2,4.4,5.6,6.8,8);
+	echo LinkWiki("Verteidigungsanlage")."(L:".$vlevel.") aufstufen (*".$deffactors[$vlevel+2]."): + ".($deffactors[$vlevel+2]*$definfo["items"] - $deffactors[$vlevel+1]*$definfo["items"]).kDefIconHTML."<br>\n";
+}
 
+//~ <defense base="5" items="43" citizen_guardians="3" citizen_homes="18" upgrades="0" buildings="368" total="634" itemsMul="5.6"/>
 
-echo "SeelenPunkte: ".GetSoulPoint($gGameDay-1)." für Tod VOR Zombieangriff<br>\n";
-echo "SeelenPunkte: ".GetSoulPoint($gGameDay)."(+".($gGameDay).") für Tod beim Zombieangriff oder morgen<br>\n";
-echo "SeelenPunkte: ".GetSoulPoint($gGameDay+1)."(+".($gGameDay+1).") für Tod beim morgigen Zombieangriff oder übermorgen<br>\n";
+//~ echo "SeelenPunkte: ".GetSoulPoint($gGameDay-1)." für Tod VOR Zombieangriff<br>\n";
+//~ echo "SeelenPunkte: ".GetSoulPoint($gGameDay)."(+".($gGameDay).") für Tod beim Zombieangriff oder morgen<br>\n";
+//~ echo "SeelenPunkte: ".GetSoulPoint($gGameDay+1)."(+".($gGameDay+1).") für Tod beim morgigen Zombieangriff oder übermorgen<br>\n";
 
 if (!kZombieEstimationQualityMaxxed) echo "<b>Hilf mit die Schätzung im ".LinkBuilding("Wachturm")." zu verbessern!</b><br>\n";
 
@@ -1372,7 +1389,7 @@ foreach ($xml->data[0]->citizens[0]->citizen as $citizen) {
 	echo "<td>".MyEscHTML($citizen["name"])."</td>";
 	echo "<td nowrap>".($bHeld?(img(kIconURL_hero,"Held").GetHeldenBerufHTML($citizen["job"])):img(kIconURL_nonhero))."</td>";
 	echo "<td>".($bBan?img(kIconURL_warning,"!VERBANNT!"):"")."</td>";
-	echo "<td nowrap>".$basedef.($bHeld?"+2":"").img(kIconURL_def).(isset($gDefIcon[$basedef])?img($gDefIcon[$basedef]):"").($bBarackenBauer?"<b title='$tippb'>BARACKENBAUER!</b>":"")."</td>";
+	echo "<td nowrap align='right'>".$basedef.($bHeld?"+2":"").img(kIconURL_def).(isset($gDefIcon[$basedef])?img($gDefIcon[$basedef]):"").($bBarackenBauer?"<b title='$tippb'>BARACKENBAUER!</b>":"")."</td>";
 	echo "<td ".($bIsHome?"":"bgcolor=orange").">".($bIsHome?(img("images/map/city.gif")):("$rx,$ry"))."</td>";
 	echo "</tr>\n";
 	/*
@@ -1559,20 +1576,30 @@ echo "</td><td valign=top align=right>\n"; // layout
 
 // ***** ***** ***** ***** ***** Zombie-Angriff
 $e = $xml->data[0]->estimations[0]->e[0];
+$e2 = $xml->data[0]->estimations[0]->e[1];
 $zombie_min = (int)($e["min"]);
 $zombie_max = (int)($e["max"]);
 $estimate_bad_html = img(kIconURL_warning,MyImgTitleConst("ungenau, Hilf mit die Schätzung im Wachturm zu verbessern!"));
+
+echo LinkWiki("Verteidigung")."<br>\n";
 echo "<table>";
-echo "<tr><td>".img(kIconURL_wachturm,MyImgTitleConst("Schätzung")).(kZombieEstimationQualityMaxxed?"":$estimate_bad_html)."</td><td>".img(kIconURL_zombie,"Zombies")."$zombie_min-$zombie_max</td><td>-&gt; ".img(kIconURL_def,"def")."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_min-$def)."-".max(0,$zombie_max-$def)."</td></tr>\n";
+echo "<tr><td>".img(kIconURL_wachturm,MyImgTitleConst("Schätzung")).(kZombieEstimationQualityMaxxed?"":$estimate_bad_html)."</td><td>".kZombieIconHTML."$zombie_min-$zombie_max</td><td>-&gt; ".kDefIconHTML."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_min-$def)."-".max(0,$zombie_max-$def)."</td></tr>\n";
+if ($e2) {
+	$zombie2_min = (int)($e2["min"]);
+	$zombie2_max = (int)($e2["max"]);
+	$estimate_bad_html = img(kIconURL_warning,MyImgTitleConst("ungenau, Hilf mit die Schätzung im Wachturm zu verbessern!"));
+	echo "<tr><td>".img(kIconURL_wachturm,MyImgTitleConst("Schätzung für Morgen"))."+1".(($e2["maxed"]!="0")?"":$estimate_bad_html)."</td><td>".kZombieIconHTML."$zombie2_min-$zombie2_max</td><td>-&gt; ".kDefIconHTML."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie2_min-$def)."-".max(0,$zombie2_max-$def)."</td></tr>\n";
+}
+
 $stat = array(0,24,50,97,149,215,294,387,489,595,709,831,935,1057,1190,1354,1548,1738,1926,2140,2353,2618,2892,3189,3506,3882,3952,4393,4841,5339,5772,6271,6880,7194,7736,8285,8728,9106,9671,9888,10666,11508,11705,12608,12139,12921,15248,11666);
 $zombie_av = isset($stat[$gGameDay]) ? $stat[$gGameDay] : false;
 $zombie_av2 = isset($stat[$gGameDay+1]) ? $stat[$gGameDay+1] : false;
-if ($zombie_av) echo "<tr><td>".img(kIconURL_statistic,MyImgTitleConst("Statistik"))."</td><td>".img(kIconURL_zombie,"Zombies")."$zombie_av</td><td>-&gt; ".img(kIconURL_def,"def")."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_av-$def)."</td></tr>\n";
-if ($zombie_av2) echo "<tr><td>".img(kIconURL_statistic,MyImgTitleConst("Statistik für Morgen"))."+1</td><td>".img(kIconURL_zombie,"Zombies")."$zombie_av2</td><td>-&gt; ".img(kIconURL_def,"def")."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_av2-$def)."</td></tr>\n";
+if ($zombie_av) echo "<tr><td>".img(kIconURL_statistic,MyImgTitleConst("Statistik"))."</td><td>".kZombieIconHTML."$zombie_av</td><td>-&gt; ".kDefIconHTML."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_av-$def)."</td></tr>\n";
+if ($zombie_av2) echo "<tr><td>".img(kIconURL_statistic,MyImgTitleConst("Statistik für Morgen"))."+1</td><td>".kZombieIconHTML."$zombie_av2</td><td>-&gt; ".kDefIconHTML."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_av2-$def)."</td></tr>\n";
 echo "</table>";
 
 $def_graben_delta = array(20,13,21,32,33,51,0);
-echo LinkBuilding("Grosser Graben")." verbessern/bauen:+".$def_graben_delta[GetBuildingLevel("Großer Graben")+1].img(kIconURL_def,"def")."<br>\n";
+//~ echo LinkBuilding("Grosser Graben")." verbessern/bauen:+".$def_graben_delta[GetBuildingLevel("Großer Graben")+1].kDefIconHTML."<br>\n";
 if ($zombie_av && $zombie_av - $def > 0) { echo img(kIconURL_warning,"es wird Tote geben")."Baut mehr ".href("http://nobbz.de/wiki/index.php/Verteidigung","Verteidigung")."!<br>\n"; }
 
 echo "</td></tr></table>\n";
@@ -1761,12 +1788,12 @@ echo "</td></tr></table>\n";
 
 
 
-echo img("images/map/zone.gif")		.img(kIconURL_zombie)."0, alleine ok"."<br>\n";
-echo img("images/map/zone_d1.gif")	.img(kIconURL_zombie)."1-2, alleine ok"."<br>\n";
-echo img("images/map/zone_d2.gif")	.img(kIconURL_zombie)."2-4, mindestens zu zweit hin!"."<br>\n";
-echo img("images/map/zone_d3.gif")	.img(kIconURL_zombie)."5+, mindestens zu dritt hin!"."<br>\n";
-echo img("images/map/zone_bg.gif")	.img(kIconURL_zombie)."0-99, mindestens zu dritt hin! unerforscht, hier könnte noch eine Ruine sein"."<br>\n";
-echo img("images/map/zone_nv.gif")	.img(kIconURL_zombie)."0-99, mindestens zu dritt hin! schon erforscht, aber HEUTE war noch Niemand hier"."<br>\n";
+echo img("images/map/zone.gif")		.kZombieIconHTML."0, alleine ok"."<br>\n";
+echo img("images/map/zone_d1.gif")	.kZombieIconHTML."1-2, alleine ok"."<br>\n";
+echo img("images/map/zone_d2.gif")	.kZombieIconHTML."2-4, mindestens zu zweit hin!"."<br>\n";
+echo img("images/map/zone_d3.gif")	.kZombieIconHTML."5+, mindestens zu dritt hin!"."<br>\n";
+echo img("images/map/zone_bg.gif")	.kZombieIconHTML."0-99, mindestens zu dritt hin! unerforscht, hier könnte noch eine Ruine sein"."<br>\n";
+echo img("images/map/zone_nv.gif")	.kZombieIconHTML."0-99, mindestens zu dritt hin! schon erforscht, aber HEUTE war noch Niemand hier"."<br>\n";
 echo img("images/map/icon_1.gif")." das Feld wurde heute als regeneriert markiert, hier lohnt es sich zu graben!<br>\n";
 echo img("images/map/icon_0.gif")." oder ".img(TagIconURL(5))." : als leer markiert, wenn sich die Zone nicht inzwischen regeneriert hat (ForschungsTurm!)<br> findet man hier nur noch ".
 img($icon_url_item."wood_bad.gif","BaumStumpf")." und ".
