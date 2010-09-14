@@ -104,6 +104,7 @@ define("kIconID_Notiz",6);
 define("kBuildingLevelMax",5);
 
 define("kSearchGameID",isset($_REQUEST["gameid"])?intval($_REQUEST["gameid"]):false);
+define("kSearchGameDay",isset($_REQUEST["day"])?intval($_REQUEST["day"]):false);
 define("kSearchXMLID",isset($_REQUEST["xmlid"])?intval($_REQUEST["xmlid"]):false);
 
 define("kMapMode_Marker"		,1);
@@ -253,9 +254,10 @@ define("kSeelenID",$temp_seelenid); // replaces the old $gSeelenID
 
 //~ session_start(); // -> man kann $_SESSION benutzen
 
-function GetLatestXmlByID				($xmlid)	{ return sqlgetone("SELECT xml FROM xml WHERE ".arr2sql(array("id"=>$xmlid))); }
-function GetLatestXmlStrFromGameID		($gameid)	{ return sqlgetone("SELECT xml FROM xml WHERE ".arr2sql(array("gameid"=>$gameid))." ORDER BY id DESC LIMIT 1"); }
-function GetLatestXmlStrFromSeelenID	($seelenid)	{ return sqlgetone("SELECT xml FROM xml WHERE ".arr2sql(array("seelenid"=>$seelenid))." ORDER BY id DESC LIMIT 1"); }
+function GetLatestXmlByID					($xmlid)		{ return sqlgetone("SELECT xml FROM xml WHERE ".arr2sql(array("id"=>$xmlid))); }
+function GetLatestXmlStrFromGameID			($gameid)		{ return sqlgetone("SELECT xml FROM xml WHERE ".arr2sql(array("gameid"=>$gameid))." ORDER BY id DESC LIMIT 1"); }
+function GetLatestXmlStrFromGameIDAndDay	($gameid,$day)	{ return sqlgetone("SELECT xml FROM xml WHERE ".arr2sql(array("gameid"=>$gameid,"day"=>$day)," AND ")." ORDER BY id DESC LIMIT 1"); }
+function GetLatestXmlStrFromSeelenID		($seelenid)		{ return sqlgetone("SELECT xml FROM xml WHERE ".arr2sql(array("seelenid"=>$seelenid))." ORDER BY id DESC LIMIT 1"); }
 
 
 if (isset($_REQUEST["scanitemtypes"])) {
@@ -295,6 +297,7 @@ function RegisterBuildingType ($building) {
 
 if (isset($_REQUEST["ajax"])) {
 	if (kSearchXMLID) $xmlstr = GetLatestXmlByID(kSearchXMLID);
+	else if (kSearchGameID && kSearchGameDay) $xmlstr = GetLatestXmlStrFromGameIDAndDay(kSearchGameID,kSearchGameDay);
 	else if (kSearchGameID) $xmlstr = GetLatestXmlStrFromGameID(kSearchGameID);
 	else $xmlstr = GetLatestXmlStrFromSeelenID(kSeelenID);
 	if (!$xmlstr) exit("failed to load xml");
@@ -591,7 +594,7 @@ width:450px;
 a img { border:0px; }
 </style>
 </head>
-<body>
+<body onload='MyOnLoad()'>
 <?php
 function PrintJavaScriptBlock () { global $gGameID;?>
 <script type="text/javascript">
@@ -882,6 +885,10 @@ function DVNavi_ShowBestResult () {
 }
 
 
+function MyOnLoad () {
+	MyOnLoad_OtherCity();
+}
+
 // ***** ***** ***** ***** *****  DVNavi END
 
 
@@ -982,13 +989,31 @@ function PrintHeaderSection () { // login,links,disclaimer
 			// date("H:i d-m-Y",$city->maxtime)
 			if (kSeelenID && count($otherCities) > 1) {
 			$mygameid = kSearchGameID ? kSearchGameID : $gGameID;
+			$mygameday = kSearchGameDay ? kSearchGameDay : sqlgetone("SELECT MAX(`day`) FROM xml WHERE gameid = ".intval($mygameid));
 			?>
+			<script type="text/javascript">
+			gOtherCitySelectDays = new Object();
+			<?php foreach ($otherCities as $city) if ($city->cityname != "") {?>gOtherCitySelectDays[<?=$city->gameid?>] = <?=$city->maxday?>;
+			<?php }?>
+			function InitOtherCityDayDropdown (val,ctl_drop,bOnLoad) {
+				var html = "";
+				var selected_day = bOnLoad ? <?=$mygameday?> : val;
+				for (var i=val;i>=1;--i) html += "<option"+((i==selected_day)?" selected":"")+">"+i+"</option>\n";
+				ctl_drop.innerHTML = html;
+				//~ alert(val+":"+ctl_drop); 
+			}
+			function MyOnLoad_OtherCity () { 
+				InitOtherCityDayDropdown(gOtherCitySelectDays[document.getElementById("idOtherCityGameIDSelect").value],document.getElementById("idOtherCityDaySelect"),true); 
+			}
+			</script>
+			
 			<form action='?' method="GET">
-			<select name="gameid">
+			<select name="gameid" onchange='InitOtherCityDayDropdown(gOtherCitySelectDays[this.value],this.form.day,false)' id='idOtherCityGameIDSelect'>
 			<?php foreach ($otherCities as $city) if ($city->cityname != "") {?>
 			<option value="<?=$city->gameid?>" <?=($mygameid == $city->gameid)?"selected":""?>><?=($city->bDead==1)?"(TOT)":""?> <?=htmlspecialchars(utf8_decode($city->cityname))?>(Tag<?=$city->maxday?>)</option>
 			<?php }?>
 			</select>
+			<select name="day" id='idOtherCityDaySelect'></select>
 			<input type="submit" name="Go" value="Go"></form>
 			</form>
 			<?php
@@ -1040,7 +1065,12 @@ $gDemo = false;
 $xmlstr = false;
 $xml = false;
 $gDebugStreamID = false;
-if (kSearchGameID) {
+if (kSearchGameID && kSearchGameDay) {
+	$xmlstr = GetLatestXmlStrFromGameIDAndDay(kSearchGameID,kSearchGameDay); 
+	if (!$xmlstr) exit("failed to load xml");
+	$xml = simplexml_load_string(MyEscXML($xmlstr));
+	$gStoreXML = false;
+} else if (kSearchGameID) {
 	$xmlstr = GetLatestXmlStrFromGameID(kSearchGameID); 
 	if (!$xmlstr) exit("failed to load xml");
 	$xml = simplexml_load_string(MyEscXML($xmlstr));
