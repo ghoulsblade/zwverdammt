@@ -639,12 +639,16 @@ function ColorCheckBox (el,col) {
 	el.style.color = col;
 }
 
+function GetAjaxUrlParamAdd () {
+	return "&gameid="+escape(<?=$gGameID?>)+"&day="+escape(<?=kSearchGameDay?kSearchGameDay:"false"?>);
+}
+
 function MapClickCell (x,y) {
 	//~ alert("ClickCell"+x+","+y);
-	MyAjaxGet("?ajax=cellinfo&x="+escape(x)+"&y="+escape(y),"idMapCellInfo");
+	MyAjaxGet("?ajax=cellinfo&x="+escape(x)+"&y="+escape(y)+GetAjaxUrlParamAdd(),"idMapCellInfo");
 }
 function MapClickCell_Dummy (x,y) { // IsOwnGame()?"MapClickCell":"MapClickCell_Dummy"
-	MyAjaxGet("?ajax=cellinfo&x="+escape(x)+"&y="+escape(y)+"&gameid="+escape(<?=$gGameID?>),"idMapCellInfo");
+	MyAjaxGet("?ajax=cellinfo&x="+escape(x)+"&y="+escape(y)+GetAjaxUrlParamAdd(),"idMapCellInfo");
 	//~ document.getElementById("idMapCellInfo").innerHTML = "nur in der eigenen Stadt möglich";
 }
 
@@ -656,11 +660,11 @@ function ShowHide (id) {
 	else	e.style.display = "inline";
 }
 
-function SetMapMode (d) { MyAjaxGet("?ajax=mapmode&mapmode="+escape(d)+"&gameid="+escape(<?=$gGameID?>),"idMapContainer"); }
+function SetMapMode (d) { MyAjaxGet("?ajax=mapmode&mapmode="+escape(d)+GetAjaxUrlParamAdd(),"idMapContainer"); }
 
 // ***** ***** ***** ***** *****  DVNavi START
 
-function ShowNaviMenu () { MyAjaxGet("?ajax=shownavimenu&gameid="+escape(<?=$gGameID?>),"idMapCellInfo"); }
+function ShowNaviMenu () { MyAjaxGet("?ajax=shownavimenu"+GetAjaxUrlParamAdd(),"idMapCellInfo"); }
 
 
 <?php
