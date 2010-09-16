@@ -65,7 +65,7 @@ bilder meta/mola :
 	http://verdammten.bplaced.net/phpBB3/styles/DirtyBoard2.0/theme/images/bg_body.jpg
 	http://etacar.put.poznan.pl/piotr.pieranski//Physics%20Around%20Us/Sand%20waves%2010.jpg
 */
-
+$gIndex_StartT = time();
 if (!file_exists("defines.php")) exit('error: please rename "defines.dist.php" to "defines.php"');
 
 require_once("defines.php");
@@ -106,11 +106,14 @@ define("kBuildingLevelMax",5);
 define("kSearchGameID",isset($_REQUEST["gameid"])?intval($_REQUEST["gameid"]):false);
 define("kSearchGameDay",isset($_REQUEST["day"])?intval($_REQUEST["day"]):false);
 define("kSearchXMLID",isset($_REQUEST["xmlid"])?intval($_REQUEST["xmlid"]):false);
+define("kGhostKey",isset($_REQUEST["key"])?($_REQUEST["key"]):false);
+
 
 define("kMapMode_Marker"		,1);
 define("kMapMode_Buerger"		,2);
 define("kMapMode_InGameTags"	,3);
 
+$gGhostStreamOk = false;
 $gRegisteredItemTypeIDs = sqlgettable("SELECT id FROM itemtype","id");
 $gRegisteredBuildingTypeIDs = sqlgettable("SELECT id,buildingid FROM buildingtype","buildingid");
 
@@ -497,7 +500,61 @@ function GetMapNote ($x,$y) {
 
 
 
-function PrintFooter () { ?></body></html><?php }
+
+// ***** ***** ***** ***** ***** ghost xml parser
+
+
+function ParseGhostXMLMapInfo($ghostxmlstr,$dbentry=false) {
+	@$xml = simplexml_load_string(MyEscXML($ghostxmlstr)); if (!$xml) return;
+	$x_zone		= $xml->headers[0]->owner[0]->myZone[0]; 	if (!$x_zone) return;
+	$x_citizen	= $xml->headers[0]->owner[0]->citizen[0]; 	if (!$x_citizen) return;
+	$x_game		= $xml->headers[0]->game[0]; 				if (!$x_game) return;
+	
+	//~ <citizen dead="0" hero="1" name="ghoulsblade" avatar="hordes/4/9/7d2611ba_9720.jpg" x="8" y="3" id="9720" ban="0" job="guardian" out="1" baseDef="1">
+	
+	$zone = false;
+	$zone->gameid		= intval($x_game["id"]);
+	$zone->x			= intval($x_citizen["x"]);
+	$zone->y			= intval($x_citizen["y"]);
+	$zone->time			= $dbentry ? $dbentry->time : time();
+	$zone->seelenid		= $dbentry ? $dbentry->seelenid : kSeelenID;
+	$zone->dried		= intval($x_zone["dried"]);	// <myZone dried="1" h="30" z="2">
+	$zone->h			= intval($x_zone["h"]);		// times explored ? aufklaerer sicherheit ?
+	$zone->z			= intval($x_zone["z"]);		// zombies
+	sql("REPLACE INTO mapzone SET ".obj2sql($zone));
+	
+	sql("DELETE FROM mapitem WHERE ".arr2sql(array("gameid"=>$zone->gameid,"x"=>$zone->x,"y"=>$zone->y)," AND "));
+	
+	foreach ($x_zone->item as $item_x) { // <item name="Raketenpulver" count="1" id="173" cat="Misc" img="powder" broken="0"/>
+		$item = false;
+		$item->gameid = $zone->gameid;
+		$item->x = $zone->x;
+		$item->y = $zone->y;
+		$item->itemtype	= intval($item_x["id"]);
+		$item->num		= intval($item_x["count"]);
+		$item->broken	= intval($item_x["broken"]);
+		sql("INSERT INTO mapitem SET ".obj2sql($item));
+	}
+}
+
+if (isset($_REQUEST["parse_ghost_db"])) {
+	$r = sql("SELECT * FROM stream_ghost_debug ORDER BY id");
+	while ($o = mysql_fetch_object($r)) {
+		ParseGhostXMLMapInfo($o->xml,$o);
+	}
+	exit(0);
+}
+
+
+
+
+
+
+
+
+
+
+function PrintFooter () { global $gIndex_StartT; echo "total time for page ".(time()-$gIndex_StartT)."msec<br>\n"; ?></body></html><?php }
 
 // htmlspecialchars
 
@@ -985,7 +1042,7 @@ function PrintHeaderSection () { // login,links,disclaimer
 	echo "<table><tr><td valign=top>";
 
 		echo "<table><tr><td>";
-			echo href("http://verdammt.zwischenwelt.org/"); 
+			echo href("http://verdammt.zwischenwelt.org/".(kGhostKey?("?key=".urlencode(kGhostKey)):""),"(aktualisieren)"); 
 		echo "</td><td>";
 			if (kSeelenID) { ?><form action="" method="POST"><input type="submit" name="LogOut" value="LogOut"></form><?php }
 		echo "</td><td>";
@@ -1050,6 +1107,9 @@ function PrintHeaderSection () { // login,links,disclaimer
 		MotionTwinNote();
 
 	echo "</td></tr></table>";
+	
+	global $gProfileHTML;
+	if (isset($_REQUEST["profile"])) echo $gProfileHTML;
 }
 
 
@@ -1069,6 +1129,23 @@ $gDemo = false;
 $xmlstr = false;
 $xml = false;
 $gDebugStreamID = false;
+
+$gProfileHTML = "";
+$gMyProfile_LastT = false;
+$gMyProfile_LastName = false;
+function MyProfile ($name=false) {
+	global $gProfileHTML,$gMyProfile_LastT,$gMyProfile_LastName;
+	if ($gMyProfile_LastT) {
+		$gProfileHTML .= (time() - $gMyProfile_LastT)."msec ".$gMyProfile_LastName."<br>\n";
+		$gMyProfile_LastT = false;
+	}
+	if ($name) {
+		$gMyProfile_LastT = time();
+		$gMyProfile_LastName = $name;
+	}
+}
+		
+		
 if (kSearchGameID && kSearchGameDay) {
 	$xmlstr = GetLatestXmlStrFromGameIDAndDay(kSearchGameID,kSearchGameDay); 
 	if (!$xmlstr) exit("failed to load xml");
@@ -1102,17 +1179,52 @@ if (kSearchGameID && kSearchGameDay) {
 		//~ if ($xmlstr) $temp_loadinfotxt .= "sample load from db OK<br>\n"; else $temp_loadinfotxt .= "sample load from db failed<br>\n";
 	}
 	if (!$xmlstr) {
+		MyProfile("download xml-stream");
 		$xmlstr = file_get_contents(kXMLUrl_Secret);
+		MyProfile();
 		$o = false;
 		$o->time = time();
-		$o->seelenid = "";
+		$o->seelenid = (string)kSeelenID;
 		$o->xml = $xmlstr;
+		MyProfile("save xml-stream to debug");
 		sql("INSERT INTO stream_debug SET ".obj2sql($o)); 
+		MyProfile();
 		// save stream right after download and delete it later after successful save.
 		// this way we can capture streams that trigger errors before being saved in fully analyzed format
 		$gDebugStreamID = mysql_insert_id();
+		
+		if (kGhostKey) {
+			//~ $ghosturl = "http://www.dieverdammten.de/xml/?k=".urlencode(kGhostKey).";sk=".urlencode(kDV_SiteKey);
+			$ghosturl = "http://www.dieverdammten.de/xml/ghost?k=".urlencode(kGhostKey).";sk=".urlencode(kDV_SiteKey);
+			
+			MyProfile("download ghost-stream");
+			$ghostxmlstr = file_get_contents($ghosturl);
+			MyProfile();
+			
+			
+			$o = false;
+			$o->time = time();
+			$o->seelenid = (string)kSeelenID;
+			$o->ghostkey = (string)kGhostKey;
+			$o->xml = $ghostxmlstr;
+			MyProfile("save ghost-stream to debug");
+			sql("INSERT INTO stream_ghost_debug SET ".obj2sql($o)); 
+			MyProfile();
+			
+			if (!$ghostxmlstr) echo "ghost stream failed to load<br>\n";
+			
+			//~ $ghostxmlstr = file_get_contents("sample_ghost.xml");
+			if ($ghostxmlstr) {
+				MyProfile("parsexml: ghost-stream");
+				$gGhostStreamOk = true;
+				ParseGhostXMLMapInfo($ghostxmlstr);
+				MyProfile();
+			}
+		}
 	}
+	MyProfile("parsexml: xml-stream");
 	@$xml = simplexml_load_string(MyEscXML($xmlstr));
+	MyProfile();
 
 	if (!$xml->data[0]->city[0]["city"] || $xml->status[0]["open"] == "0") {
 		$xmlstr = GetLatestXmlStrFromSeelenID(kSeelenID);
@@ -1158,8 +1270,10 @@ function GetDeathTypeIconHTML ($dtype,$txt="") {
 		case kDeathType_Infektion:		return img(kIconURL_infektion		,"Infektion. ".$txt); break;
 		case kDeathType_Dehydriert:		return img(kIconURL_dehydration		,"Dehydriert. ".$txt); break;
 		case kDeathType_ZombieAngriff:	return img(kIconURL_ZombieAngriff	,"ZombieAngriff. ".$txt); break;
+		case kDeathType_Entzug:			return img(kIconURL_death			,"Entzug. ".$txt); break;
 		case kDeathType_Kopfschuss:		return img(kIconURL_death			,("Kopfschuss. ").$txt); break;
 		case kDeathType_AccountDeleted:	return img(kIconURL_death			,("Account geloescht. ").$txt); break;
+		case kDeathType_Vergiftet:		return img(kIconURL_death			,("Mord(Vergiftung). ").$txt); break;
 	}
 	return img(kIconURL_death,"Unbekannt[".intval($dtype)."]. ".$txt);
 }
@@ -1211,9 +1325,11 @@ function MyLoadGlobals () {
 	define("kDeathType_Erhaengt",4);
 	define("kDeathType_Aussenwelt",5);
 	define("kDeathType_ZombieAngriff",6);
+	define("kDeathType_Entzug",7);
 	define("kDeathType_Infektion",8);
 	define("kDeathType_Kopfschuss",9);
 	define("kDeathType_AccountDeleted",10);
+	define("kDeathType_Vergiftet",11); // Mord(Vergiftung)
 	
 	$timetxt = $xml->headers[0]->game[0]["datetime"]; // 2010-08-29 14:11:44
 	sscanf($timetxt,"%u-%u-%u %u:%u:%u",$year,$month,$day,$h,$m,$s);
@@ -1275,7 +1391,9 @@ function MyLoadGlobals () {
 	}
 }
 
+MyProfile("MyLoadGlobals");
 MyLoadGlobals();
+MyProfile();
 function StoreXML () {
 	global $gGameID,$gGameDay,$city,$xmlstr;
 	$o = false;
@@ -1289,8 +1407,11 @@ function StoreXML () {
 }
 
 if ($gStoreXML) {
+	MyProfile("StoreXML");
 	StoreXML();
+	MyProfile("Delete debug-xml");
 	if ($gDebugStreamID) sql("DELETE FROM stream_debug WHERE id = ".intval($gDebugStreamID));
+	MyProfile();
 }
 
 PrintJavaScriptBlock();
@@ -1359,6 +1480,7 @@ echo " &Uuml;berlebende=".$buerger_alive;
 echo " Helden=".$buerger_hero;
 echo " draussen=".$buerger_draussen;
 if ($gDemo) echo " <b>(demo/offline daten)</b>";
+if ($gGhostStreamOk) echo " <b>ghost=ok</b>";
 echo "<br>\n";
 
 $definfo = $xml->data[0]->city[0]->defense[0];
@@ -1628,8 +1750,10 @@ if ($e2) {
 $stat = array(0,24,50,97,149,215,294,387,489,595,709,831,935,1057,1190,1354,1548,1738,1926,2140,2353,2618,2892,3189,3506,3882,3952,4393,4841,5339,5772,6271,6880,7194,7736,8285,8728,9106,9671,9888,10666,11508,11705,12608,12139,12921,15248,11666);
 $zombie_av = isset($stat[$gGameDay]) ? $stat[$gGameDay] : false;
 $zombie_av2 = isset($stat[$gGameDay+1]) ? $stat[$gGameDay+1] : false;
+$zombie_av3 = isset($stat[$gGameDay+2]) ? $stat[$gGameDay+2] : false;
 if ($zombie_av) echo "<tr><td>".img(kIconURL_statistic,MyImgTitleConst("Statistik"))."</td><td>".kZombieIconHTML."$zombie_av</td><td>-&gt; ".kDefIconHTML."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_av-$def)."</td></tr>\n";
 if ($zombie_av2) echo "<tr><td>".img(kIconURL_statistic,MyImgTitleConst("Statistik für Morgen"))."+1</td><td>".kZombieIconHTML."$zombie_av2</td><td>-&gt; ".kDefIconHTML."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_av2-$def)."</td></tr>\n";
+if ($zombie_av3) echo "<tr><td>".img(kIconURL_statistic,MyImgTitleConst("Statistik für ÜberMorgen"))."+2</td><td>".kZombieIconHTML."$zombie_av3</td><td>-&gt; ".kDefIconHTML."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie_av3-$def)."</td></tr>\n";
 echo "</table>";
 
 $def_graben_delta = array(20,13,21,32,33,51,0);
