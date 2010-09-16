@@ -115,6 +115,7 @@ define("kMapMode_InGameTags"	,3);
 
 $gGhostStreamOk = false;
 $gRegisteredItemTypeIDs = sqlgettable("SELECT id FROM itemtype","id");
+$gRegisteredItemTypes = sqlgettable("SELECT * FROM itemtype","id");
 $gRegisteredBuildingTypeIDs = sqlgettable("SELECT id,buildingid FROM buildingtype","buildingid");
 
 $gIconText = array(
@@ -404,6 +405,8 @@ function Ajax_MapCellInfo ($rx,$ry) { // idMapCellInfo
 	if ($zombies == -1) $zombies = "?";
 	//~ echo "$rx,$ry lastnote=".($lastnote?"ok":"-")." gameid=$gGameID ".$lastnote->icon." ".$lastnote->txt."<br>\n";
 	
+	$x = kCityX + $rx;
+	$y = kCityY - $ry;
 	?>
 	<form action="?" method="post" class='mapadd' id='form_mapadd_1'>
 		(<?=$rx?>/<?=$ry?>) [<?=abs($rx)+abs($ry)?>AP]  <?=$lastnote?("[".GetAgeText($lastnote->day,$lastnote->time)."]"):""?><br>
@@ -415,7 +418,23 @@ function Ajax_MapCellInfo ($rx,$ry) { // idMapCellInfo
 		<span class='bframe'><input type="radio" name="icon" value="<?=$i?>" <?=($icon==$i)?"checked":""?> /><?=img("images/map/icon_".$i.".gif",$gIconText[$i])?></span>
 		<?php }?>
 		<br>
-		<textarea cols="40" rows="10" name='msg'><?=htmlspecialchars($msg)?></textarea><br>
+		<?php
+		$zone = sqlgetobject("SELECT * FROM mapzone WHERE ".arr2sql(array("gameid"=>kGameID,"x"=>$x,"y"=>$y)," AND "));
+		$items = sqlgettable("SELECT * FROM mapitem WHERE ".arr2sql(array("gameid"=>kGameID,"x"=>$x,"y"=>$y)," AND "));
+		if ($zone) {
+			echo "(".date("Y.d.m H:i",$zone->time)." Z:".$zone->z." ".(($zone->dried!=0)?"LEER":"")."):";
+			global $gRegisteredItemTypes;
+			foreach ($items as $o) {
+				$t = $gRegisteredItemTypes[$o->itemtype];
+				$c = $o->num;
+				$bBroken = $o->broken != 0;
+				$html = (($c>1)?($c."x"):"").LinkItem($t->name,img(kIconUrlItem.$t->img.".gif",($t->name),$bBroken?"class='broken'":""));
+				echo " ".$html;
+			}
+			echo "<br>\n";
+		}
+		?>
+		<textarea cols="40" rows="3" name='msg'><?=htmlspecialchars($msg)?></textarea><br>
 		<?php if (!IsOwnGame()) {?>
 		(kann nur in der eigenen Stadt bearbeitet werden)
 		<?php }?>	
@@ -700,6 +719,9 @@ function GetAjaxUrlParamAdd () {
 	return "&gameid="+escape(<?=$gGameID?>)+"&day="+escape(<?=kSearchGameDay?kSearchGameDay:"false"?>);
 }
 
+function MapCellTooltip (td) {
+	// TODO 
+}
 function MapClickCell (x,y) {
 	//~ alert("ClickCell"+x+","+y);
 	MyAjaxGet("?ajax=cellinfo&x="+escape(x)+"&y="+escape(y)+GetAjaxUrlParamAdd(),"idMapCellInfo");
@@ -1286,6 +1308,9 @@ function MyLoadGlobals () {
 	$icon_url_item		= $xml->headers[0]["iconurl"]."item_";
 	$avatar_url			= $xml->headers[0]["avatarurl"];
 	$city				= $xml->data[0]->city[0];
+	define("kIconUrl",$icon_url);
+	define("kIconUrlItem",$icon_url_item);
+	
 	//~ kIconURL_attackin	= "http://data.dieverdammten.de/gfx/forum/smiley/h_zhead.gif";
 	
 	define("kIconURL_zombie"		,"http://www.dieverdammten.de/gfx/forum/smiley/h_zombie.gif");
@@ -1338,6 +1363,8 @@ function MyLoadGlobals () {
 	$def = (int)($city->defense[0]["total"]);
 	$gGameDay = (int)$xml->headers[0]->game[0]["days"];
 	$gGameID = (int)$xml->headers[0]->game[0]["id"];
+	define("kGameID",$gGameID);
+	define("kGameDay",$gGameDay);
 
 	define("kCityX",$xml->data[0]->city["x"]);
 	define("kCityY",$xml->data[0]->city["y"]);
@@ -1704,7 +1731,7 @@ foreach ($xml->data[0]->bank[0]->item as $item) {
 	$c = (int)$item["count"];
 	$cat = (string)$item["cat"];
 	$bBroken = $item["broken"] != 0;
-	$html = (($c>1)?($c."x"):"").LinkItem($item["name"],img($icon_url_item.$item["img"].".gif",($item["name"]),$bBroken?"class='broken'":""));
+	$html = (($c>1)?($c."x"):"").LinkItem($item["name"],img(kIconUrlItem.$item["img"].".gif",($item["name"]),$bBroken?"class='broken'":""));
 	if (!isset($cats[$cat])) $cats[$cat] = array();
 	$cats[$cat][] = "<span style='white-space: nowrap;'>".$html."</span>";
 }
@@ -1921,7 +1948,7 @@ function RenderMapBlock ($mode=kMapMode_Marker) {
 			$style = ""; // "bgcolor=green"
 			$fname = IsOwnGame()?"MapClickCell":"MapClickCell_Dummy";
 			$tipp = GetMapToolTip($x,$y);
-			echo "<td $style $bgimg onclick='$fname($rx,$ry);' title='".strtr(htmlspecialchars($tipp),array("'"=>'"'))."' id='map_".$rx."_".$ry."'>".MapGetCellContent($x,$y,$mode)."</td>\n";
+			echo "<td $style $bgimg onclick='$fname($rx,$ry);' title='".strtr(htmlspecialchars($tipp),array("'"=>'"'))."' id='map_".$rx."_".$ry."' onmouseover='MapCellTooltip(this);'>".MapGetCellContent($x,$y,$mode)."</td>\n";
 			//~ echo "<td width=16 height=16>".($data?("nvt=".$data["nvt"].",tag=".$data["tag"]):"")."</td>";
 			//~ echo "<td width=16 height=16>".($data?"x":"")."</td>";
 		}
