@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Erstellungszeit: 16. September 2010 um 20:08
+-- Erstellungszeit: 25. September 2010 um 13:07
 -- Server Version: 5.0.51
 -- PHP-Version: 5.2.6-1+lenny8
 
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS `accesslog` (
   `browser` text NOT NULL,
   `context` varchar(128) NOT NULL,
   PRIMARY KEY  (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=7282 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=9925 ;
 
 -- --------------------------------------------------------
 
@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS `mapitem` (
   PRIMARY KEY  (`id`),
   KEY `gameid_2` (`gameid`,`x`,`y`),
   KEY `gameid_3` (`gameid`,`itemtype`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=242 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=2583 ;
 
 -- --------------------------------------------------------
 
@@ -141,7 +141,7 @@ CREATE TABLE IF NOT EXISTS `mapnote` (
   KEY `gameid` (`gameid`,`x`,`y`),
   KEY `gameid_2` (`gameid`),
   KEY `time` (`time`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1081 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1211 ;
 
 -- --------------------------------------------------------
 
@@ -192,7 +192,7 @@ CREATE TABLE IF NOT EXISTS `stream_debug` (
   `xml` mediumtext character set utf8 NOT NULL,
   `time` int(11) NOT NULL,
   PRIMARY KEY  (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=1861 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=2814 ;
 
 -- --------------------------------------------------------
 
@@ -207,7 +207,7 @@ CREATE TABLE IF NOT EXISTS `stream_ghost_debug` (
   `xml` mediumtext character set utf8 NOT NULL,
   `time` int(11) NOT NULL,
   PRIMARY KEY  (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=12 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=343 ;
 
 -- --------------------------------------------------------
 
@@ -227,4 +227,4 @@ CREATE TABLE IF NOT EXISTS `xml` (
   KEY `seelenid` (`seelenid`),
   KEY `time` (`time`),
   KEY `gameid` (`gameid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=3666 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=6033 ;

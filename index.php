@@ -203,31 +203,33 @@ if (isset($_REQUEST["download_wiki"])) {
 
 if (isset($_REQUEST["refresh_other"])) {
 	//~ $arr = sqlgettable("SELECT *,MAX(time) as maxtime FROM accesslog GROUP BY seelenid");
-	$arr = sqlgettable("SELECT id,seelenid,cityname,MAX(time) as maxtime FROM xml GROUP BY seelenid ORDER BY maxtime");
-	echo count($arr)." found "."<br>\n";
-	$today_start_t = floor(time() / (24*3600))*24*3600;
-	$seelenid = false;
-	$otherid = false;
-	foreach ($arr as $o) {
-		//~ if ($o->maxtime < $today_start_t) {
-		if ($o->maxtime < time() - 6*3600) {
-			echo "refresh id ".$o->id." ".$o->cityname." ".$seelenid."<br>\n";
-			$seelenid = $o->seelenid;
-			$otherid = $o->id;
+	//~ for ($i=0;$i<10;++$i) {
+		$arr = sqlgettable("SELECT id,seelenid,cityname,MAX(time) as maxtime FROM xml GROUP BY seelenid ORDER BY maxtime");
+		echo count($arr)." found "."<br>\n";
+		$today_start_t = floor(time() / (24*3600))*24*3600;
+		$seelenid = false;
+		$otherid = false;
+		foreach ($arr as $o) {
+			//~ if ($o->maxtime < $today_start_t) {
+			if ($o->maxtime < time() - 6*3600) {
+				echo "refresh id ".$o->id." ".$o->cityname." ".$seelenid."<br>\n";
+				$seelenid = $o->seelenid;
+				$otherid = $o->id;
+			}
 		}
-	}
-	if ($seelenid) {
-		if (!define("kSeelenID",$seelenid)) exit("failed to set constant, already set?");
-		$xmlurl = "http://www.dieverdammten.de/xml/?k=".urlencode(kSeelenID).";sk=".urlencode(kDV_SiteKey);
-		define("kXMLUrl_Basic",$xmlurl); // kein sitekey
-		define("kXMLUrl_Secret",$xmlurl); // enthaelt sitekey! das sollte der user nicht zu sehen kriegen
-		$xmlstr = file_get_contents(kXMLUrl_Secret);
-		if (!$xmlstr) exit("failed to load xml");
-		$xml = simplexml_load_string(MyEscXML($xmlstr));
-		MyLoadGlobals();
-		StoreXML();
-		echo "stored '$otherid' : ".(string)$city["city"]." ".kSeelenID."<br>\n";
-	}
+		if ($seelenid) {
+			if (!define("kSeelenID",$seelenid)) exit("failed to set constant, already set?");
+			$xmlurl = "http://www.dieverdammten.de/xml/?k=".urlencode(kSeelenID).";sk=".urlencode(kDV_SiteKey);
+			define("kXMLUrl_Basic",$xmlurl); // kein sitekey
+			define("kXMLUrl_Secret",$xmlurl); // enthaelt sitekey! das sollte der user nicht zu sehen kriegen
+			$xmlstr = file_get_contents(kXMLUrl_Secret);
+			if (!$xmlstr) exit("failed to load xml");
+			$xml = simplexml_load_string(MyEscXML($xmlstr));
+			MyLoadGlobals();
+			StoreXML();
+			echo "stored '$otherid' : ".(string)$city["city"]." ".kSeelenID."<br>\n";
+		}
+	//~ }
 	exit("refresh other");
 }
 
@@ -1115,7 +1117,7 @@ function PrintHeaderSection () { // login,links,disclaimer
 			href("http://chat.mibbit.com/?channel=%23dieverdammten&server=irc.mibbit.net","Chat")." ".
 			href("http://www.patamap.com/index.php?page=patastats","PataMap")." ".
 			href("http://github.com/ghoulsblade/zwverdammt","github(sourcecode)")." ". 
-			href("http://poll.nobbz.de/attack","AngriffsStatistik")." ".   
+			href("http://poll.nobbz.de/attacks","AngriffsStatistik")." ".   
 			href("http://www.twinpedia.com/","twinpedia(fr)").
 			href("http://translate.google.com/translate?hl=de&sl=fr&tl=de&u=http%3A%2F%2Fwww.twinpedia.com%2F","(t)")." ".   
 			href(kXMLUrl_Basic,"XmlStream")." ". 
@@ -1322,6 +1324,12 @@ function MyLoadGlobals () {
 	$gDefIcon[0] = $icon_url."upgrade_none.gif";
 	$gDefIcon[1] = $icon_url."upgrade_tent.gif";
 	$gDefIcon[3] = $icon_url."upgrade_house1.gif";
+	$gDefIcon[4] = "http://nobbz.de/wiki/images/2/2f/H%C3%BCtte.gif";	// todo : ingame url ? 
+	$gDefIcon[6] = "http://nobbz.de/wiki/images/3/30/Haus.gif";
+	$gDefIcon[8] = "http://nobbz.de/wiki/images/e/ec/Umz%C3%A4untes_Haus.gif";
+	$gDefIcon[12] = "http://nobbz.de/wiki/images/a/ad/Befestigte_Unterkunft.gif";
+	$gDefIcon[20] = "http://nobbz.de/wiki/images/5/52/Bunker.gif";
+	$gDefIcon[40] = "http://nobbz.de/wiki/images/b/b2/Schloss.gif";
 
 	
 	define("kIconURL_msg"			,"http://data.dieverdammten.de/gfx/forum/smiley/h_chat.gif");
@@ -1356,6 +1364,10 @@ function MyLoadGlobals () {
 	define("kDeathType_AccountDeleted",10);
 	define("kDeathType_Vergiftet",11); // Mord(Vergiftung)
 	
+	global $gZombieStats;
+	$gZombieStats = array(0,24,50,97,149,215,294,387,489,595,709,831,935,1057,1190,1354,1548,1738,1926,2140,2353,2618,2892,3189,3506,3882,3952,4393,4841,5339,5772,6271,6880,7194,7736,8285,8728,9106,9671,9888,10666,11508,11705,12608,12139,12921,15248,11666);
+
+
 	$timetxt = $xml->headers[0]->game[0]["datetime"]; // 2010-08-29 14:11:44
 	sscanf($timetxt,"%u-%u-%u %u:%u:%u",$year,$month,$day,$h,$m,$s);
 	$time = mktime($h,$m,$s,$month,$day,$year);
@@ -1512,7 +1524,35 @@ echo "<br>\n";
 
 $definfo = $xml->data[0]->city[0]->defense[0];
 
-echo LinkWiki("Verteidigungsgegenstände")." : ".$definfo["items"]." * ".LinkWiki("Verteidigungsanlage",$definfo["itemsMul"])." = ".($definfo["items"]*$definfo["itemsMul"]).kDefIconHTML."<br>\n";
+$def_items_pro_tag = intval($definfo["items"])/intval($gGameDay);
+echo LinkWiki("Verteidigungsgegenstände")." : ".$definfo["items"]." * ".LinkWiki("Verteidigungsanlage",$definfo["itemsMul"])." = ".($definfo["items"]*$definfo["itemsMul"]).kDefIconHTML;
+
+define("kMaxDefBuildings_Normal"	,40+10+50+45+60+12+2+15+12+210+0*500+180+60+0*75+95+45+50 +3+5 +7+9+0*10+25+20+50+45+75+30+40+5+70+25+70+15+50);
+define("kMaxDefBuildings_Vdt"		,48*5 +36+35+37+59+61 +13+21+32+33+51 );
+define("kMaxDefBuildings_Notfall"	,75+35+10+50+45+45+40+25+10);
+define("kMaxDefBuildings_Total"		,kMaxDefBuildings_Normal+kMaxDefBuildings_Vdt+kMaxDefBuildings_Notfall);
+
+//~ <defense base="5" items="127" citizen_guardians="5" citizen_homes="73" upgrades="385" buildings="1650" total="3134" itemsMul="8"/>
+
+$defitem_maxday = 1;
+$def_houses = $buerger_alive * 3; // standard haus->3 def für stadt
+$def_streichholz = 20*8; // standard haus->3 def für stadt
+
+$def_add_total = kMaxDefBuildings_Total+$def_houses+$def_streichholz;
+foreach ($gZombieStats as $tag => $zombies) {
+	if ($def_add_total + $tag*$def_items_pro_tag*8 >= $zombies) $defitem_maxday = $tag+1; else break;
+}
+$deferwartung_heute = $def_add_total + $gGameDay*$def_items_pro_tag*8;
+// $gZombieStats
+
+echo "(~".sprintf("%0.1f",$def_items_pro_tag)." pro Tag -> max~".$defitem_maxday."Tage)<br>\n";
+//~ echo "kMaxDefBuildings_Normal=".kMaxDefBuildings_Normal."<br>";
+//~ echo "kMaxDefBuildings_Vdt=".kMaxDefBuildings_Vdt."<br>";
+//~ echo "kMaxDefBuildings_Notfall=".kMaxDefBuildings_Notfall."<br>";
+//~ echo "def_houses=".$def_houses."<br>";
+//~ echo "def_streichholz=".$def_streichholz."<br>";
+//~ echo "gGameDay*def_items_pro_tag*8=".($gGameDay*$def_items_pro_tag*8)."<br>";
+//~ echo "deferwartung_heute:".$deferwartung_heute."<br>";
 
 $vlevel = GetBuildingLevel("Verteidigungsanlage");
 if ($vlevel < kBuildingLevelMax) {
@@ -1572,7 +1612,8 @@ foreach ($xml->data[0]->citizens[0]->citizen as $citizen) {
 	echo "<td>".MyEscHTML($citizen["name"])."</td>";
 	echo "<td nowrap>".($bHeld?(img(kIconURL_hero,"Held").GetHeldenBerufHTML($citizen["job"])):img(kIconURL_nonhero))."</td>";
 	echo "<td>".($bBan?img(kIconURL_warning,"!VERBANNT!"):"")."</td>";
-	echo "<td nowrap align='right'>".$basedef.($bHeld?"+2":"").img(kIconURL_def).(isset($gDefIcon[$basedef])?img($gDefIcon[$basedef]):"").($bBarackenBauer?"<b title='$tippb'>BARACKENBAUER!</b>":"")."</td>";
+	$deficon = $gDefIcon[$basedef];
+	echo "<td nowrap align='right'>".$basedef.($bHeld?"+2":"").img(kIconURL_def).(isset($deficon)?LinkWiki("Behausung",img($deficon)):"").($bBarackenBauer?"<b title='$tippb'>BARACKENBAUER!</b>":"")."</td>";
 	echo "<td ".($bIsHome?"":"bgcolor=orange").">".($bIsHome?(img("images/map/city.gif")):("$rx,$ry"))."</td>";
 	echo "</tr>\n";
 	/*
@@ -1774,7 +1815,7 @@ if ($e2) {
 	echo "<tr><td>".img(kIconURL_wachturm,MyImgTitleConst("Schätzung für Morgen"))."+1".(($e2["maxed"]!="0")?"":$estimate_bad_html)."</td><td>".kZombieIconHTML."$zombie2_min-$zombie2_max</td><td>-&gt; ".kDefIconHTML."$def</td><td>-&gt; ".img(kIconURL_attackin,"tote")."".max(0,$zombie2_min-$def)."-".max(0,$zombie2_max-$def)."</td></tr>\n";
 }
 
-$stat = array(0,24,50,97,149,215,294,387,489,595,709,831,935,1057,1190,1354,1548,1738,1926,2140,2353,2618,2892,3189,3506,3882,3952,4393,4841,5339,5772,6271,6880,7194,7736,8285,8728,9106,9671,9888,10666,11508,11705,12608,12139,12921,15248,11666);
+$stat = $gZombieStats;
 $zombie_av = isset($stat[$gGameDay]) ? $stat[$gGameDay] : false;
 $zombie_av2 = isset($stat[$gGameDay+1]) ? $stat[$gGameDay+1] : false;
 $zombie_av3 = isset($stat[$gGameDay+2]) ? $stat[$gGameDay+2] : false;
