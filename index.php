@@ -201,6 +201,7 @@ if (isset($_REQUEST["download_wiki"])) {
 	exit(0);
 }
 
+
 if (isset($_REQUEST["refresh_other"])) {
 	//~ $arr = sqlgettable("SELECT *,MAX(time) as maxtime FROM accesslog GROUP BY seelenid");
 	//~ for ($i=0;$i<10;++$i) {
@@ -209,12 +210,19 @@ if (isset($_REQUEST["refresh_other"])) {
 		$today_start_t = floor(time() / (24*3600))*24*3600;
 		$seelenid = false;
 		$otherid = false;
+		$bestday = 0;
+		$infos = array();
 		foreach ($arr as $o) {
 			//~ if ($o->maxtime < $today_start_t) {
 			if ($o->maxtime < time() - 6*3600) {
-				echo "refresh id ".$o->id." ".$o->cityname." ".$seelenid."<br>\n";
-				$seelenid = $o->seelenid;
-				$otherid = $o->id;
+				$lastknown = sqlgetobject("SELECT day FROM xml WHERE ".arr2sql(array("seelenid"=>$o->seelenid))." ORDER BY id DESC LIMIT 1");
+				$curday = $lastknown ? $lastknown->day : 0;
+				$infos[] = "refresh day=$curday id ".$o->id." ".$o->cityname." ".$seelenid."<br>\n";
+				if (!$seelenid || $curday > $bestday) {
+					$seelenid = $o->seelenid;
+					$otherid = $o->id;
+					$bestday = $curday;
+				}
 			}
 		}
 		if ($seelenid) {
@@ -227,8 +235,10 @@ if (isset($_REQUEST["refresh_other"])) {
 			$xml = simplexml_load_string(MyEscXML($xmlstr));
 			MyLoadGlobals();
 			StoreXML();
-			echo "stored '$otherid' : ".(string)$city["city"]." ".kSeelenID."<br>\n";
+			echo "stored day=$bestday '$otherid' : ".(string)$city["city"]." ".kSeelenID."<br>\n";
+			echo "<hr>\n";
 		}
+		echo implode("",$infos);
 	//~ }
 	exit("refresh other");
 }
@@ -1661,9 +1671,13 @@ if ($c < 3) {
 
 // ***** ***** ***** ***** ***** Ruinen
 
-function GetRuinPossibleTipp ($ap) {
-	$sum = sqlgetone("SELECT COUNT(*) FROM ruin WHERE ap = ".intval($ap));
-	$types = sqlgettable("SELECT *,COUNT(*) as c FROM ruin WHERE ap = ".intval($ap)." GROUP BY type ORDER BY c DESC");
+function GetRuinPossibleTipp ($rx,$ry,$ap) {
+	//~ $where = "ap = ".intval($ap);
+	$rx = intval($rx);
+	$ry = intval($ry);
+	$where = "FLOOR(SQRT(x*x + y*y)) = FLOOR(SQRT($rx*$rx + $ry*$ry))";
+	$sum = sqlgetone("SELECT COUNT(*) FROM ruin WHERE ".$where);
+	$types = sqlgettable("SELECT *,COUNT(*) as c FROM ruin WHERE ".$where." GROUP BY type ORDER BY c DESC");
 	$txt = "";
 	foreach ($types as $o) $txt .= sprintf("%2.0f%%",$o->c*100/$sum)." ".$o->name."<br>\n";
 	return $txt;
@@ -1693,7 +1707,7 @@ foreach ($gRuinen as $r) {
 	echo "<td>";
 	echo "".($bUnknown?"???":LinkRuin(utf8_decode($r["node"]["name"]))).$dithtml." ".href("javascript:ShowHide(\"".$textid."\")",$bUnknown?"(möglich)":"(text)")."<br>\n";
 	
-	$tipp = ($bUnknown)?GetRuinPossibleTipp($ap):"";
+	$tipp = ($bUnknown)?GetRuinPossibleTipp($x,$y,$ap):"";
 	
 	echo "<span style='display:none;' id='".$textid."'>".htmlspecialchars(utf8_decode($r["node"])).$tipp."</span>\n";
 	echo "</td>\n";
@@ -1826,7 +1840,8 @@ echo "</table>";
 
 $def_graben_delta = array(20,13,21,32,33,51,0);
 //~ echo LinkBuilding("Grosser Graben")." verbessern/bauen:+".$def_graben_delta[GetBuildingLevel("Großer Graben")+1].kDefIconHTML."<br>\n";
-if ($zombie_av && $zombie_av - $def > 0) { echo img(kIconURL_warning,"es wird Tote geben")."Baut mehr ".href("http://nobbz.de/wiki/index.php/Verteidigung","Verteidigung")."!<br>\n"; }
+$zombie_max_today = ($zombie_max) ? $zombie_max : $zombie_av;
+if ($zombie_max_today && $zombie_max_today - $def > 1) { echo img(kIconURL_warning,"es könnte Tote geben")."Baut mehr ".href("http://nobbz.de/wiki/index.php/Verteidigung","Verteidigung")."!<br>\n"; }
 
 echo "</td></tr></table>\n";
 
