@@ -347,7 +347,15 @@ function Ajax_ShowNaviMenu () {
 	Tipp : <?=img("images/map/icon_".kIconID_Verboten.".gif",$gIconText[$i])?> Marker = verbotenes Feld.<br>
 	<form action="?" method="post" class='mapadd' id='form_dvnavi'>
 	<input class='mapaddsmall_input' type="text" size="3" maxlength="5" name="ap" value='18'>AP
-	<input class='mapaddsmall_button' type="button" name="util_scout" value="Route berechnen" onclick="DVNavi_Execute(this.form.ap.value)"></td>
+	
+	<select name="mode">
+	<option value="explore" selected>Unerforschte Felder und Ruinen</option>
+	<option value="6km">6km 18ap</option>
+	<option value="6kmNoRet">6km 18ap+R&uuml;ckkehr</option>
+	</select>
+			
+			
+	<input class='mapaddsmall_button' type="button" name="util_scout" value="Route berechnen" onclick="DVNavi_Execute(this.form.ap.value,this.form.mode.value)"></td>
 	</form>
 	<span id='idDVNaviStatus'></span>
 	<span id='idDVNaviResult'></span>
@@ -806,13 +814,35 @@ gDVNavi_ScoreTable_Unexplored.ruin = 100;
 function InitScoreMap (scoretable) {
 	//~ gMaxScorePerField = 0;
 	//~ for (var k in scoretable) gMaxScorePerField = Math.max(gMaxScorePerField,scoretable[k]);
-	for (y=0;y<gDVNavi_MapH;++y) for (x=0;x<gDVNavi_MapW;++x) gDVNavi_MapScore[y][x] = scoretable[gDVNavi_MapClass[y][x]];
+	var b6km = gDVNaviMode == "6kmNoRet" || gDVNaviMode == "6km";
+	//~ alert("InitScoreMap "+b6km+" : "+gDVNaviMode);
+	for (y=0;y<gDVNavi_MapH;++y) for (x=0;x<gDVNavi_MapW;++x) {
+		var rx = x - gDVNavi_CityX + 1;
+		var ry = y - gDVNavi_CityY + 1;
+		var km = Math.round(Math.sqrt(rx*rx + ry*ry));
+		var ap = Math.abs(rx) + Math.abs(ry);
+		var ap2 = ap*2;
+		var zoneClass = gDVNavi_MapClass[y][x];
+		var bUnexplored = zoneClass == "unexp";
+		var bRuin		= zoneClass == "ruin";
+		if (b6km) {
+			if ((bRuin || bUnexplored) && km >= 6) {
+				if (ap2 < 18)			gDVNavi_MapScore[y][x] = 1000;
+				else if (ap2 == 18)		gDVNavi_MapScore[y][x] = 1000;
+				else					gDVNavi_MapScore[y][x] = 100; // >18ap single reachable dist
+			} else {
+				gDVNavi_MapScore[y][x] = 0;
+			}
+		} else {
+			gDVNavi_MapScore[y][x] = scoretable[gDVNavi_MapClass[y][x]];
+		}
+	}
 }
 
 gMap = {}
 for (y=1;y<=gDVNavi_MapH;++y) { var row = new Array(); gMap[y] = row; for (x=1;x<=gDVNavi_MapW;++x) { row[x] = new Object(); } } // every cell is a table
 function Map			(x,y) { return gMap[y][x]; }
-function Score			(x,y) { return gDVNavi_MapScore[y-1][x-1]; } // gMap indices are one-based, gDVNavi_MapScore zero-based
+function DVNavi_Score	(x,y) { return gDVNavi_MapScore[y-1][x-1]; } // gMap indices are one-based, gDVNavi_MapScore zero-based
 function DVNavi_Class	(x,y) { return gDVNavi_MapClass[y-1][x-1]; } // gMap indices are one-based, gDVNavi_MapScore zero-based
 function IsCity			(x,y) { return x == gDVNavi_CityX && y == gDVNavi_CityY; }
 function Valid			(x,y) { return x >= 1 && x <= gDVNavi_MapW && y >= 1 && y <= gDVNavi_MapH; }
@@ -830,22 +860,22 @@ function clonemod1 (t,k1,v1) { // copy assoc-array t, and modify one value by ke
 
 function DVNavi_Heuristic (x,y,ap) {
 	// determine the area than can be travalled, and see how often we can achieve max-score in it
-	var e = Math.floor((ap - ReturnAP(x,y)) / 2);
+	var e = Math.floor((ap - (gDVNaviReturnByHeroAction?0:ReturnAP(x,y))) / 2);
 	var minx = Math.max(1,Math.min(gDVNavi_MapW,	Math.min(x,gDVNavi_CityX)-e	));
 	var maxx = Math.max(1,Math.min(gDVNavi_MapW,	Math.max(x,gDVNavi_CityX)+e	));
 	var miny = Math.max(1,Math.min(gDVNavi_MapH,	Math.min(y,gDVNavi_CityY)-e	));
 	var maxy = Math.max(1,Math.min(gDVNavi_MapH,	Math.max(y,gDVNavi_CityY)+e	));
 	var maxc = 0;
 	for (var ty=miny;ty<=maxy && maxc < ap;++ty) 
-	for (var tx=minx;tx<=maxx;++tx) if (Score(tx,ty) >= kDVNaviMaxScore) { ++maxc; if (maxc >= ap) break; }
+	for (var tx=minx;tx<=maxx;++tx) if (DVNavi_Score(tx,ty) >= kDVNaviMaxScore) { ++maxc; if (maxc >= ap) break; }
 	return maxc * kDVNaviMaxScore + (ap - maxc) * kDVNavi2ndMaxScore; // an upper limit for the score achievable with the remaining ap
 }
 
 
 function AddExpedition (x,y,ap,visited,score,txt) {
-	if (ap < 0 || !Valid(x,y) || ReturnAP(x,y) > ap) return;
+	if (ap < 0 || !Valid(x,y) || (ReturnAP(x,y) > ap && !gDVNaviReturnByHeroAction)) return;
 	var pos = (x-gDVNavi_CityX) + "/" + (gDVNavi_CityY-y); // as string
-	if (!visited[pos]) score += Score(x,y);
+	if (!visited[pos]) score += DVNavi_Score(x,y);
 	if (score + ap*kDVNaviMaxScore <= gMinScore) return;
 	var heur = score + DVNavi_Heuristic(x,y,ap);
 	if (heur <= gMinScore) return;
@@ -871,7 +901,10 @@ function InExp (e,x,y) {
 function MyPrintStatus (txt) { gDVNaviStatus.innerHTML = txt; }
 function MyPrintLine (txt) { gDVNaviConsole.innerHTML += txt+"<br>\n"; }
 
-function DVNavi_Execute (ap) {
+function DVNavi_Execute (ap,mode) {
+	gDVNaviMode = mode;
+	gDVNaviReturnByHeroAction = false;
+	if (gDVNaviMode == "6kmNoRet") gDVNaviReturnByHeroAction = true;
 
 	gExpeditions = new Array();
 	gExpeditionC = 0;
@@ -925,7 +958,7 @@ function DVNavi_Step () { // main step, this eats cpu for breakfast
 	
 	if (!e) return;
 	gExpeditionC -= 1;
-	var bFinished = e.ap <= 2 && ReturnAP(e.x,e.y) == 0;
+	var bFinished = e.ap <= 2 && (ReturnAP(e.x,e.y) == 0 || gDVNaviReturnByHeroAction);
 	if (bFinished && e.score > gMinScore) {
 		gMinScore = e.score;
 		//~ table.insert(gFinishedExp,e) 
@@ -940,44 +973,66 @@ function DVNavi_Step () { // main step, this eats cpu for breakfast
 	AddExpedition(e.x,e.y+1,e.ap-1,e.visited,e.score,e.txt);
 	++gDVNavi_Steps;
 	if ((gDVNavi_Steps % 500) == 0) MyPrintStatus("step "+gDVNavi_Steps+","+gExpeditionC+","+gMinScore+","+gBestExpPath);
-	//~ print("step",gDVNavi_Steps,gExpeditionC,#gFinishedExp,e.ap,e.x..","..e.y,Score(e.x,e.y),bFinished and "HOME" or "",e.score,e.txt)
+	//~ print("step",gDVNavi_Steps,gExpeditionC,#gFinishedExp,e.ap,e.x..","..e.y,DVNavi_Score(e.x,e.y),bFinished and "HOME" or "",e.score,e.txt)
 }
 
-function DVNavi_Finished () { MyPrintStatus("Fertig. Beste Route:"+gBestExpPath); }
-function img (url) { return "<img src='"+url+"'>"; }
+function DVNavi_Finished () { MyPrintStatus("Fertig. Beste Route:"+gMinScore+":"+gBestExpPath); }
+function img (url,title) { return "<img src='"+url+"'  "+(title?("alt='"+title+"' title='"+title+"'"):"")+" >"; }
+function td (html) { return "<td>"+html+"</td>"; }
 
 // display a little table showing the route
 function DVNavi_ShowBestResult () {
 	var html = "<table border=1 cellspacing=0 cellpadding=0 class='dvnavimap'>";
 	var c_unexp = 0;
+	var c_wanted = 0;
 	var c_ruin  = 0;
 	for (y=1;y<=gDVNavi_MapH;++y) {
+		
 		html += "<tr>";
+		var cells1 = "";
+		var cells2 = "";
 		for (x=1;x<=gDVNavi_MapW;++x) {
 			var cell;
 			if (IsCity(x,y)) {
 				cell = img("images/map/dvnavi_city.gif");
+				cells2 += "<td>"+img("images/map/dvnavi_city.gif")+"</td>";
 			} else {
-				var bBigScore = Score(x,y) > 500;
+				var score = DVNavi_Score(x,y);
+				var rx = x - gDVNavi_CityX;
+				var ry = gDVNavi_CityY - y;
+				var tipp = rx+","+ry+" score:"+score;
+				var bBigScore = score > 500;
 				var cellclass = DVNavi_Class(x,y);
+				var bUnexp = cellclass == "unexp";
+				var bRuin  = cellclass == "ruin";
 				if (InExp(gBestExp,x,y)) {
-						 if (cellclass == "ruin") { cell = img("images/map/dvnavi_exp_ruin.gif"); ++c_ruin; }
-					else if (cellclass == "unexp") { cell = img("images/map/dvnavi_exp_unexp.gif"); ++c_unexp; }
-					else cell = bBigScore ? img("images/map/dvnavi_exp_high.gif") : img("images/map/dvnavi_exp_low.gif");
+					if (bBigScore) ++c_wanted;
+						 if (bRuin ) { cell = img("images/map/dvnavi_exp_ruin.gif",tipp); ++c_ruin; }
+					else if (bUnexp) { cell = img("images/map/dvnavi_exp_unexp.gif",tipp); ++c_unexp; }
+					else cell = bBigScore ? img("images/map/dvnavi_exp_high.gif",tipp) : img("images/map/dvnavi_exp_low.gif",tipp);
 				} else {
-						 if (cellclass == "ruin") cell = img("images/map/dvnavi_ruin.gif");
-					else if (cellclass == "unexp") cell = img("images/map/dvnavi_unexp.gif");
-					else cell = img("images/map/dvnavi_zone.gif");
+						 if (bRuin ) cell = img("images/map/dvnavi_ruin.gif",tipp);
+					else if (bUnexp) cell = img("images/map/dvnavi_unexp.gif",tipp);
+					else cell = img("images/map/dvnavi_zone.gif",tipp);
 				}
+				if (score == 0 && bRuin)		cells2 += td(img("images/map/dvnavi_ruin.gif",tipp));
+				else if (score == 0 && bUnexp)	cells2 += td(img("images/map/dvnavi_unexp.gif",tipp));
+				else if (score == 0)	cells2 += td(img("images/map/dvnavi_zone.gif",tipp));
+				else	if (bBigScore)	cells2 += td(img("images/map/dvnavi_exp_high.gif",tipp));
+				else					cells2 += td(img("images/map/dvnavi_exp_low.gif",tipp));
 			}
-			html += "<td>"+cell+"</td>";
+			cells1 += "<td>"+cell+"</td>";
 		}
+		html += cells1;
+		html += "<td>&nbsp;</td>";
+		html += cells2;
 		html += "</tr>\n";
 	}
 	html += "</table>\n";
 	html += gExpeditionMaxAP+" AP<br>\n";
 	html += c_unexp+" Unerforschte Felder<br>\n";
 	html += c_ruin+" Ruinen<br>\n";
+	html += c_wanted+" Punkte<br>\n";
 	document.getElementById("idDVNaviResult").innerHTML = html;
 }
 
