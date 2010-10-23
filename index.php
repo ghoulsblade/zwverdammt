@@ -810,6 +810,10 @@ gDVNavi_ScoreTable_Unexplored.voll = 10;
 gDVNavi_ScoreTable_Unexplored.unexp = kDVNaviMaxScore;
 gDVNavi_ScoreTable_Unexplored.ruin = 100;
 
+function DVNavi_AbsToRelX (x) { return x - gDVNavi_CityX; }
+function DVNavi_AbsToRelY (y) { return gDVNavi_CityY - y; }
+function DVNavi_FieldDistAP (rx,ry) { return Math.abs(rx) + Math.abs(ry); }
+function DVNavi_FieldDistKM (rx,ry) { return Math.round(Math.sqrt(rx*rx + ry*ry)); }
 
 function InitScoreMap (scoretable) {
 	//~ gMaxScorePerField = 0;
@@ -817,14 +821,15 @@ function InitScoreMap (scoretable) {
 	var b6km = gDVNaviMode == "6kmNoRet" || gDVNaviMode == "6km";
 	//~ alert("InitScoreMap "+b6km+" : "+gDVNaviMode);
 	for (y=0;y<gDVNavi_MapH;++y) for (x=0;x<gDVNavi_MapW;++x) {
-		var rx = x - gDVNavi_CityX + 1;
-		var ry = y - gDVNavi_CityY + 1;
-		var km = Math.round(Math.sqrt(rx*rx + ry*ry));
-		var ap = Math.abs(rx) + Math.abs(ry);
+		var rx = DVNavi_AbsToRelX(x+1);
+		var ry = DVNavi_AbsToRelY(y+1);
+		var km = DVNavi_FieldDistKM(rx,ry);
+		var ap = DVNavi_FieldDistAP(rx,ry);
 		var ap2 = ap*2;
 		var zoneClass = gDVNavi_MapClass[y][x];
 		var bUnexplored = zoneClass == "unexp";
 		var bRuin		= zoneClass == "ruin";
+		var bVerboten	= zoneClass == "verboten";
 		if (b6km) {
 			if ((bRuin || bUnexplored) && km >= 6) {
 				if (ap2 < 18)			gDVNavi_MapScore[y][x] = 1000;
@@ -833,6 +838,7 @@ function InitScoreMap (scoretable) {
 			} else {
 				gDVNavi_MapScore[y][x] = 0;
 			}
+			if (bVerboten) gDVNavi_MapScore[y][x] = -5000;
 		} else {
 			gDVNavi_MapScore[y][x] = scoretable[gDVNavi_MapClass[y][x]];
 		}
@@ -998,9 +1004,12 @@ function DVNavi_ShowBestResult () {
 				cells2 += "<td>"+img("images/map/dvnavi_city.gif")+"</td>";
 			} else {
 				var score = DVNavi_Score(x,y);
-				var rx = x - gDVNavi_CityX;
-				var ry = gDVNavi_CityY - y;
-				var tipp = rx+","+ry+" score:"+score;
+				var rx = DVNavi_AbsToRelX(x);
+				var ry = DVNavi_AbsToRelY(y);
+				var km = DVNavi_FieldDistKM(rx,ry);
+				var ap = DVNavi_FieldDistAP(rx,ry);
+
+				var tipp = rx+","+ry+" "+km+"km "+ap+"ap score:"+score;
 				var bBigScore = score > 500;
 				var cellclass = DVNavi_Class(x,y);
 				var bUnexp = cellclass == "unexp";
