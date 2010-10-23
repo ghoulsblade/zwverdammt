@@ -99,6 +99,7 @@ define("kNumIcons",7);
 define("kIconID_DigLeer",0);
 define("kIconID_DigVoll",1);
 define("kIconID_Verboten",4);
+define("kIconID_Green",5);
 define("kIconID_Notiz",6);
 
 define("kBuildingLevelMax",5);
@@ -112,6 +113,7 @@ define("kGhostKey",isset($_REQUEST["key"])?($_REQUEST["key"]):false);
 define("kMapMode_Marker"		,1);
 define("kMapMode_Buerger"		,2);
 define("kMapMode_InGameTags"	,3);
+define("kMapMode_6KM"			,4);
 
 $gGhostStreamOk = false;
 $gRegisteredItemTypeIDs = sqlgettable("SELECT id FROM itemtype","id");
@@ -1881,12 +1883,17 @@ function GetBuergerNamenOnAbsPos($x,$y) {
 }
 function GetAnzahlBuergerOnAbsPos($x,$y) { global $gBuergerOnPos; return count($gBuergerOnPos["$x,$y"]); }
 
+function GetFieldDistAP	($rx,$ry) { return abs($rx)+abs($ry); }
+function GetFieldDistKM	($rx,$ry) { return round(sqrt($rx*$rx + $ry*$ry)); }
+
 function GetMapToolTip ($x,$y) {
 	global $gGameDay,$gIconText;
 	$txt = "";
 	$rx = $x - kCityX;
 	$ry = kCityY - $y;
-	$txt .= "($rx,$ry)";
+	$ap = GetFieldDistAP($rx,$ry);
+	$km = GetFieldDistKM($rx,$ry);
+	$txt .= "($rx,$ry = $km km/$ap ap)";
 	if ($x != kCityX || $y != kCityY) { 
 		$o = GetMapNote($rx,$ry);
 		if ($o) {
@@ -1912,6 +1919,8 @@ function MapGetCellContent ($x,$y,$mode=kMapMode_Marker) { // kMapMode_Marker,kM
 	global $gGameID,$gGameDay;
 	$rx = $x-kCityX;
 	$ry = kCityY-$y;
+	$ap = GetFieldDistAP($rx,$ry);
+	$km = GetFieldDistKM($rx,$ry);
 	$o = GetMapNote($rx,$ry);
 	$data = Map($x,$y);
 	$r = $data->building[0];
@@ -1934,6 +1943,17 @@ function MapGetCellContent ($x,$y,$mode=kMapMode_Marker) { // kMapMode_Marker,kM
 			//~ if ($r) $html .= img("images/map/iconmark_ruin.gif",($r["name"]));
 		} else {
 			if ($ingametag) $html .= img(TagIconURL($ingametag),$tipp);
+		}
+	}
+	if ($mode == kMapMode_6KM) {
+		if (($r || !$data) && $km >= 6) {
+			$ap2 = $ap*2;
+			if ($ap2 < 18)
+					$html .= img("images/map/icon_".kIconID_Green.".gif",$km."km ".$ap."AP");
+			else if ($ap2 == 18)
+					$html .= img("images/map/icon_yellow.gif",$km."km ".$ap."AP");
+			else	$html .= img("images/map/icon_".kIconID_Verboten.".gif",$km."km ".$ap."AP");
+			
 		}
 	}
 	if ($mode == kMapMode_InGameTags) {
@@ -2019,6 +2039,7 @@ echo "</span><br>\n";
 <a href='javascript:SetMapMode(<?=kMapMode_Marker?>)'>(Marker)</a>
 <a href='javascript:SetMapMode(<?=kMapMode_InGameTags?>)'>(InGame)</a>
 <a href='javascript:SetMapMode(<?=kMapMode_Buerger?>)'>(Bürger)</a>
+<a href='javascript:SetMapMode(<?=kMapMode_6KM?>)'>(6km)</a>
 <a href='javascript:ShowNaviMenu()'>(DVNavi)</a>
 <?php
 
