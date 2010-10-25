@@ -95,12 +95,13 @@ function LinkItem		($name,$html=false) { return LinkWiki($name,$html); }
 
 // note : htmlentities() is identical to htmlspecialchars() in all ways, except with htmlentities(), all characters which have HTML character entity equivalents are translated into these entities. 
 
-define("kNumIcons",7);
+define("kNumIcons",8);
 define("kIconID_DigLeer",0);
 define("kIconID_DigVoll",1);
 define("kIconID_Verboten",4);
 define("kIconID_Green",5);
 define("kIconID_Notiz",6);
+define("kIconID_Bonus",7);
 
 define("kBuildingLevelMax",5);
 
@@ -125,9 +126,10 @@ $gIconText = array(
 	1=>"Feld regeneriert : graben!",
 	2=>"Feld temporaer gesichert",
 	3=>"Notruf",
-	4=>"!Verboten!(für DVNavi)",
+	4=>"DVNavi:Verboten!",
 	5=>"ok",
 	6=>"notiz",
+	7=>"DVNavi:Bonus!",
 );
 
 function RegisterRuin ($gameid,$rx,$ry,$name,$type) { // <building name="Autowracks" type="7" dig="0">
@@ -350,6 +352,7 @@ function Ajax_ShowNaviMenu () {
 	
 	<select name="mode">
 	<option value="explore" selected>Unerforschte Felder und Ruinen</option>
+	<option value="bonus">Prim&auml;r Bonus</option>
 	<option value="6km">6km 18ap</option>
 	<option value="6kmNoRet">6km 18ap+R&uuml;ckkehr</option>
 	</select>
@@ -777,6 +780,7 @@ function DVNaviGetMapClass($x,$y) {
 	$ry = kCityY-$y;
 	$o = GetMapNote($rx,$ry);
 	if ($o->day == $gGameDay && $o->icon == kIconID_Verboten) return "verboten"; // per icon manuell deaktiviert
+	if ($o->day == $gGameDay && $o->icon == kIconID_Bonus) return "bonus"; // per icon manuell deaktiviert
 	$data = Map($x,$y);
 	if (!$data) return "unexp"; // unexplored -> sure that it is NONEMPTY, could have ruin
 	if (IsMapCellRuine($x,$y)) return "ruin";
@@ -798,7 +802,7 @@ for ($y=0;$y<kMapH;++$y) { echo "gDVNavi_MapClass[$y] = new Array("; for ($x=0;$
 
 ?>
 
-kDVNaviMaxScore				= 1000;
+kDVNaviMaxScore				= 1100;
 kDVNavi2ndMaxScore			= 100; // zweithoechste moegliche punktzahl
 
 gDVNavi_ScoreTable_Unexplored = new Object();
@@ -807,8 +811,9 @@ gDVNavi_ScoreTable_Unexplored.city = 0;
 gDVNavi_ScoreTable_Unexplored.old = 5;
 gDVNavi_ScoreTable_Unexplored.leer = 0;
 gDVNavi_ScoreTable_Unexplored.voll = 10;
-gDVNavi_ScoreTable_Unexplored.unexp = kDVNaviMaxScore;
-gDVNavi_ScoreTable_Unexplored.ruin = 100;
+gDVNavi_ScoreTable_Unexplored.unexp = kDVNaviMaxScore-100;
+gDVNavi_ScoreTable_Unexplored.ruin = kDVNavi2ndMaxScore;
+gDVNavi_ScoreTable_Unexplored.bonus = kDVNaviMaxScore;
 
 function DVNavi_AbsToRelX (x) { return x - gDVNavi_CityX; }
 function DVNavi_AbsToRelY (y) { return gDVNavi_CityY - y; }
@@ -819,6 +824,7 @@ function InitScoreMap (scoretable) {
 	//~ gMaxScorePerField = 0;
 	//~ for (var k in scoretable) gMaxScorePerField = Math.max(gMaxScorePerField,scoretable[k]);
 	var b6km = gDVNaviMode == "6kmNoRet" || gDVNaviMode == "6km";
+	var bBonusMode = gDVNaviMode == "bonus";
 	//~ alert("InitScoreMap "+b6km+" : "+gDVNaviMode);
 	for (y=0;y<gDVNavi_MapH;++y) for (x=0;x<gDVNavi_MapW;++x) {
 		var rx = DVNavi_AbsToRelX(x+1);
@@ -830,13 +836,16 @@ function InitScoreMap (scoretable) {
 		var bUnexplored = zoneClass == "unexp";
 		var bRuin		= zoneClass == "ruin";
 		var bVerboten	= zoneClass == "verboten";
-		if (b6km) {
+		var bBonusZone	= zoneClass == "bonus";
+		if (bBonusMode) {
+			gDVNavi_MapScore[y][x] = bBonusZone ? (kDVNaviMaxScore) : (scoretable[gDVNavi_MapClass[y][x]] / 4);
+		} else if (b6km) {
 			if ((bRuin || bUnexplored) && km >= 6) {
 				if (ap2 < 18)			gDVNavi_MapScore[y][x] = 1000;
 				else if (ap2 == 18)		gDVNavi_MapScore[y][x] = 1000;
 				else					gDVNavi_MapScore[y][x] = 100; // >18ap single reachable dist
 			} else {
-				gDVNavi_MapScore[y][x] = 0;
+				gDVNavi_MapScore[y][x] = bUnexplored ? 1 : 0;
 			}
 			if (bVerboten) gDVNavi_MapScore[y][x] = -5000;
 		} else {
@@ -1000,8 +1009,8 @@ function DVNavi_ShowBestResult () {
 		for (x=1;x<=gDVNavi_MapW;++x) {
 			var cell;
 			if (IsCity(x,y)) {
-				cell = img("images/map/dvnavi_city.gif");
-				cells2 += "<td>"+img("images/map/dvnavi_city.gif")+"</td>";
+				cells1 += td(img("images/map/dvnavi_city.gif"));
+				cells2 += td(img("images/map/dvnavi_city.gif"));
 			} else {
 				var score = DVNavi_Score(x,y);
 				var rx = DVNavi_AbsToRelX(x);
@@ -1014,23 +1023,45 @@ function DVNavi_ShowBestResult () {
 				var cellclass = DVNavi_Class(x,y);
 				var bUnexp = cellclass == "unexp";
 				var bRuin  = cellclass == "ruin";
+				
+				
 				if (InExp(gBestExp,x,y)) {
 					if (bBigScore) ++c_wanted;
-						 if (bRuin ) { cell = img("images/map/dvnavi_exp_ruin.gif",tipp); ++c_ruin; }
-					else if (bUnexp) { cell = img("images/map/dvnavi_exp_unexp.gif",tipp); ++c_unexp; }
-					else cell = bBigScore ? img("images/map/dvnavi_exp_high.gif",tipp) : img("images/map/dvnavi_exp_low.gif",tipp);
+						 if (bRuin )	{ cells1 += td(img(bBigScore ? "images/map/dvnavi_exp_ruin.gif" : "images/map/dvnavi_exp_ruin_low.gif",tipp)); ++c_ruin; }
+					else if (bUnexp)	{ cells1 += td(img(bBigScore ? "images/map/dvnavi_exp_unexp.gif" : "images/map/dvnavi_exp_unexp_low.gif",tipp)); ++c_unexp; }
+					else				{ cells1 += td(img(bBigScore ? "images/map/dvnavi_exp_high.gif" : "images/map/dvnavi_exp_low.gif",tipp)); }
 				} else {
-						 if (bRuin ) cell = img("images/map/dvnavi_ruin.gif",tipp);
-					else if (bUnexp) cell = img("images/map/dvnavi_unexp.gif",tipp);
-					else cell = img("images/map/dvnavi_zone.gif",tipp);
+						 if (bRuin )	{ cells1 += td(img("images/map/dvnavi_ruin.gif",tipp)); }
+					else if (bUnexp)	{ cells1 += td(img("images/map/dvnavi_unexp.gif",tipp)); }
+					else 				{ cells1 += td(img("images/map/dvnavi_zone.gif",tipp)); }
 				}
-				if (score == 0 && bRuin)		cells2 += td(img("images/map/dvnavi_ruin.gif",tipp));
-				else if (score == 0 && bUnexp)	cells2 += td(img("images/map/dvnavi_unexp.gif",tipp));
-				else if (score == 0)	cells2 += td(img("images/map/dvnavi_zone.gif",tipp));
-				else	if (bBigScore)	cells2 += td(img("images/map/dvnavi_exp_high.gif",tipp));
-				else					cells2 += td(img("images/map/dvnavi_exp_low.gif",tipp));
+				
+				if (score > 0) {
+						 if (bRuin )	{ cells2 += td(img(bBigScore ? "images/map/dvnavi_exp_ruin.gif" : "images/map/dvnavi_exp_ruin_low.gif",tipp)); }
+					else if (bUnexp)	{ cells2 += td(img(bBigScore ? "images/map/dvnavi_exp_unexp.gif" : "images/map/dvnavi_exp_unexp_low.gif",tipp)); }
+					else				{ cells2 += td(img(bBigScore ? "images/map/dvnavi_exp_high.gif" : "images/map/dvnavi_exp_low.gif",tipp)); }
+				} else {
+						 if (bRuin )	{ cells2 += td(img("images/map/dvnavi_ruin.gif",tipp)); }
+					else if (bUnexp)	{ cells2 += td(img("images/map/dvnavi_unexp.gif",tipp)); }
+					else 				{ cells2 += td(img("images/map/dvnavi_zone.gif",tipp)); }
+				}
+				
+				/*
+				images : 
+				
+				explored score <= 0  : dvnavi_zone.gif
+				explored score small : dvnavi_exp_low.gif
+				explored score big   : dvnavi_exp_high.gif
+				
+				ruin score <= 0  : dvnavi_ruin.gif
+				ruin score small : dvnavi_exp_ruin_low.gif
+				ruin score big   : dvnavi_exp_ruin.gif
+				
+				unexplored score <= 0  : dvnavi_unexp.gif
+				unexplored score small : dvnavi_exp_unexp_low.gif
+				unexplored score big   : dvnavi_exp_unexp.gif
+				*/
 			}
-			cells1 += "<td>"+cell+"</td>";
 		}
 		html += cells1;
 		html += "<td>&nbsp;</td>";
