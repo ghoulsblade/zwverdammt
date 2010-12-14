@@ -115,6 +115,7 @@ define("kMapMode_Marker"		,1);
 define("kMapMode_Buerger"		,2);
 define("kMapMode_InGameTags"	,3);
 define("kMapMode_6KM"			,4);
+define("kMapMode_15KM"			,5);
 
 $gGhostStreamOk = false;
 $gRegisteredItemTypeIDs = sqlgettable("SELECT id FROM itemtype","id");
@@ -1796,11 +1797,13 @@ foreach ($gRuinen as $r) {
 	$dig = $r["node"]["dig"];
 	$dithtml = ($dig && $dig>0)?(" ($dig ".img(kIconURL_ruindig).")"):"";
 	$bUnknown = $r["node"]["type"] == -1;
-	$ap = abs($x)+abs($y);
+	$ap = GetFieldDistAP($x,$y);
+	$km = GetFieldDistKM($x,$y);
 	
 	echo "<tr>\n";
 	echo "<td align=center>$x/$y</td>\n";
 	echo "<td>".$ap."AP</td>\n";
+	echo "<td>".$km."km</td>\n";
 	echo "<td>";
 	echo "".($bUnknown?"???":LinkRuin(utf8_decode($r["node"]["name"]))).$dithtml." ".href("javascript:ShowHide(\"".$textid."\")",$bUnknown?"(möglich)":"(text)")."<br>\n";
 	
@@ -2051,6 +2054,18 @@ function MapGetCellContent ($x,$y,$mode=kMapMode_Marker) { // kMapMode_Marker,kM
 			
 		}
 	}
+	if ($mode == kMapMode_15KM) {
+		$ap2 = $ap*2;
+		if ($km <= 15) {
+			if ($ap2 <= 18)
+					$html .= img("images/map/icon_".kIconID_Green.".gif",$km."km ".$ap."AP");
+			elseif ($ap2 <= 18+8+6)
+					$html .= img("images/map/icon_yellow.gif",$km."km ".$ap."AP");
+			else	$html .= img("images/map/icon_".kIconID_Bonus.".gif",$km."km ".$ap."AP");
+		} else {
+			$html .= img("images/map/icon_".kIconID_Verboten.".gif",$km."km ".$ap."AP");
+		}
+	}
 	if ($mode == kMapMode_InGameTags) {
 		if ($ingametag) $html .= img(TagIconURL($ingametag),$tipp);
 	}
@@ -2135,6 +2150,7 @@ echo "</span><br>\n";
 <a href='javascript:SetMapMode(<?=kMapMode_InGameTags?>)'>(InGame)</a>
 <a href='javascript:SetMapMode(<?=kMapMode_Buerger?>)'>(Bürger)</a>
 <a href='javascript:SetMapMode(<?=kMapMode_6KM?>)'>(6km)</a>
+<a href='javascript:SetMapMode(<?=kMapMode_15KM?>)'>(15km)</a>
 <a href='javascript:ShowNaviMenu()'>(DVNavi)</a>
 <?php
 
