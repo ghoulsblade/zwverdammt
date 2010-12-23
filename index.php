@@ -116,6 +116,7 @@ define("kMapMode_Buerger"		,2);
 define("kMapMode_InGameTags"	,3);
 define("kMapMode_6KM"			,4);
 define("kMapMode_15KM"			,5);
+define("kMapMode_Storm"			,6);
 
 $gGhostStreamOk = false;
 $gRegisteredItemTypeIDs = sqlgettable("SELECT id FROM itemtype","id");
@@ -316,6 +317,7 @@ function RegisterBuildingType ($building) {
 }
 
 
+
 if (isset($_REQUEST["ajax"])) {
 	if (kSearchXMLID) $xmlstr = GetLatestXmlByID(kSearchXMLID);
 	else if (kSearchGameID && kSearchGameDay) $xmlstr = GetLatestXmlStrFromGameIDAndDay(kSearchGameID,kSearchGameDay);
@@ -326,6 +328,9 @@ if (isset($_REQUEST["ajax"])) {
 	MyLoadGlobals();
 	$rx = intval($_REQUEST["x"]);
 	$ry = intval($_REQUEST["y"]);
+	//~ echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">'."\n";
+	//~ echo "südosten";
+	ob_start(); // collect output to encode with utf8 before sending to browser
 	switch ($_REQUEST["ajax"]) {
 		case "addmapnote":		Ajax_AddMapNote($rx,$ry); break;
 		case "cellinfo":		Ajax_MapCellInfo($rx,$ry); break;
@@ -335,6 +340,10 @@ if (isset($_REQUEST["ajax"])) {
 		case "shownavimenu":	Ajax_ShowNaviMenu(); break;
 		default:			echo "unknown request ".$_REQUEST["ajax"]; break;
 	}
+	$html = ob_get_contents();
+	ob_end_clean();
+	echo utf8_encode($html);
+	
 	exit();
 }
 
@@ -1991,7 +2000,8 @@ function GetMapToolTip ($x,$y) {
 	$ry = kCityY - $y;
 	$ap = GetFieldDistAP($rx,$ry);
 	$km = GetFieldDistKM($rx,$ry);
-	$txt .= "($rx,$ry = $km km/$ap ap)";
+	$hrtxt = (GetHimmelsRichtungTxt($rx,$ry));
+	$txt .= "($rx,$ry = $km km/$ap ap, $hrtxt)";
 	if ($x != kCityX || $y != kCityY) { 
 		$o = GetMapNote($rx,$ry);
 		if ($o) {
@@ -2026,6 +2036,7 @@ function MapGetCellContent ($x,$y,$mode=kMapMode_Marker) { // kMapMode_Marker,kM
 	$mode = intval($mode);
 	$tipp = GetMapToolTip($x,$y);
 	$ingametag = $data["tag"] ? $data["tag"] : false;
+	$hrtxt = (GetHimmelsRichtungTxt($rx,$ry));
 	if ($mode == kMapMode_Marker) {
 		if ($o) {
 			$age = (int)$gGameDay - (int)$o->day;
@@ -2043,27 +2054,35 @@ function MapGetCellContent ($x,$y,$mode=kMapMode_Marker) { // kMapMode_Marker,kM
 			if ($ingametag) $html .= img(TagIconURL($ingametag),$tipp);
 		}
 	}
+	$dottip = $km."km ".$ap."AP ".$hrtxt;
 	if ($mode == kMapMode_6KM) {
 		if (($r || !$data) && $km >= 6) {
 			$ap2 = $ap*2;
 			if ($ap2 < 18)
-					$html .= img("images/map/icon_".kIconID_Green.".gif",$km."km ".$ap."AP");
+					$html .= img("images/map/icon_".kIconID_Green.".gif",$dottip);
 			else if ($ap2 == 18)
-					$html .= img("images/map/icon_yellow.gif",$km."km ".$ap."AP");
-			else	$html .= img("images/map/icon_".kIconID_Verboten.".gif",$km."km ".$ap."AP");
+					$html .= img("images/map/icon_yellow.gif",$dottip);
+			else	$html .= img("images/map/icon_".kIconID_Verboten.".gif",$dottip);
 			
+		}
+	}
+	if ($mode == kMapMode_Storm) {
+		if (!($rx == 0 && $ry == 0)) {
+			if (GetHimmelsRichtung($rx,$ry) % 2) 
+					$html .= img("images/map/icon_".kIconID_Green.".gif",$dottip);
+			else	$html .= img("images/map/icon_".kIconID_Verboten.".gif",$dottip);
 		}
 	}
 	if ($mode == kMapMode_15KM) {
 		$ap2 = $ap*2;
 		if ($km <= 15) {
 			if ($ap2 <= 18)
-					$html .= img("images/map/icon_".kIconID_Green.".gif",$km."km ".$ap."AP");
+					$html .= img("images/map/icon_".kIconID_Green.".gif",$dottip);
 			elseif ($ap2 <= 18+8+6)
-					$html .= img("images/map/icon_yellow.gif",$km."km ".$ap."AP");
-			else	$html .= img("images/map/icon_".kIconID_Bonus.".gif",$km."km ".$ap."AP");
+					$html .= img("images/map/icon_yellow.gif",$dottip);
+			else	$html .= img("images/map/icon_".kIconID_Bonus.".gif",$dottip);
 		} else {
-			$html .= img("images/map/icon_".kIconID_Verboten.".gif",$km."km ".$ap."AP");
+			$html .= img("images/map/icon_".kIconID_Verboten.".gif",$dottip);
 		}
 	}
 	if ($mode == kMapMode_InGameTags) {
@@ -2151,6 +2170,7 @@ echo "</span><br>\n";
 <a href='javascript:SetMapMode(<?=kMapMode_Buerger?>)'>(Bürger)</a>
 <a href='javascript:SetMapMode(<?=kMapMode_6KM?>)'>(6km)</a>
 <a href='javascript:SetMapMode(<?=kMapMode_15KM?>)'>(15km)</a>
+<a href='javascript:SetMapMode(<?=kMapMode_Storm?>)'>(Sturm)</a>
 <a href='javascript:ShowNaviMenu()'>(DVNavi)</a>
 <?php
 
